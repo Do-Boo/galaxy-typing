@@ -267,6 +267,15 @@ class _SpaceDefenseScreenState extends State<SpaceDefenseScreen>
 
   // 입력 확인
   void _checkInput() {
+    // 게임이 시작되지 않은 상태에서 첫 입력이 있을 경우 게임 시작
+    if (!_isPlaying &&
+        !_isGameOver &&
+        !_isCountingDown &&
+        _inputController.text.isNotEmpty) {
+      _startGame();
+      return;
+    }
+
     if (!_isPlaying || _isPaused) return;
 
     final inputText = _inputController.text.trim().toLowerCase();
@@ -910,14 +919,17 @@ class _SpaceDefenseScreenState extends State<SpaceDefenseScreen>
             child: TextField(
               controller: _inputController,
               focusNode: _inputFocusNode,
-              enabled: _isPlaying && !_isPaused && !_isGameOver,
+              enabled: _isPlaying && !_isPaused && !_isGameOver ||
+                  !_isPlaying && !_isGameOver,
               onSubmitted: (_) => _inputController.clear(),
               decoration: InputDecoration(
                 hintText: _isPlaying && !_isPaused
                     ? '단어를 입력하세요...'
                     : _isGameOver
                         ? '게임 오버'
-                        : '시작 버튼을 눌러 게임을 시작하세요',
+                        : _isCountingDown
+                            ? '카운트다운 중...'
+                            : '입력을 시작하면 자동으로 게임이 시작됩니다',
                 prefixIcon: const Icon(Icons.keyboard),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.clear),
@@ -930,24 +942,14 @@ class _SpaceDefenseScreenState extends State<SpaceDefenseScreen>
 
           const SizedBox(width: 8),
 
-          // 게임 제어 버튼
-          if (!_isPlaying && !_isGameOver)
+          // 게임 제어 버튼 (일시정지 중 또는 게임 진행 중일 때만 표시)
+          if (_isPaused || (_isPlaying && !_isGameOver && !_isCountingDown))
             IconButton(
-              icon: const Icon(Icons.play_arrow, color: AppColors.primary),
-              onPressed: _startGame,
-              tooltip: '게임 시작',
-            )
-          else if (_isPaused)
-            IconButton(
-              icon: const Icon(Icons.play_arrow, color: AppColors.primary),
-              onPressed: _resumeGame,
-              tooltip: '계속하기',
-            )
-          else if (_isPlaying && !_isGameOver)
-            IconButton(
-              icon: const Icon(Icons.pause, color: AppColors.warning),
-              onPressed: _pauseGame,
-              tooltip: '일시정지',
+              icon: _isPaused
+                  ? const Icon(Icons.play_arrow, color: AppColors.primary)
+                  : const Icon(Icons.pause, color: AppColors.warning),
+              onPressed: _isPaused ? _resumeGame : _pauseGame,
+              tooltip: _isPaused ? '계속하기' : '일시정지',
             ),
         ],
       ),
