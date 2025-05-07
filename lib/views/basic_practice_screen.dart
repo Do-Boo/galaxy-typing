@@ -6,6 +6,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -66,6 +67,9 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
     // 단어 목록 생성 - 설정 컨트롤러에서 난이도에 따라 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadWords();
+
+      // 자동으로 입력 필드에 포커스 설정 (키보드 표시)
+      _inputFocusNode.requestFocus();
     });
 
     // 입력 텍스트 변경 리스너 추가
@@ -406,7 +410,8 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       // 키보드가 표시될 때 화면이 리사이징되도록 설정
-      resizeToAvoidBottomInset: true, // 모든 디바이스에서 리사이징 활성화
+      // 모바일 웹에서는 리사이징을 비활성화하여 키보드 공백 문제 해결
+      resizeToAvoidBottomInset: !kIsWeb,
       body: Stack(
         children: [
           // 배경
@@ -454,167 +459,39 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
                       ),
                       Expanded(
                         child: PageHeader(
-                          title: 'BASIC TYPING',
-                          subtitle: '자신의 페이스로 타이핑을 연습하세요',
+                          title: 'BASIC PRACTICE',
+                          subtitle: '자유롭게 타자 연습을 할 수 있는 화면',
                           centerAlign: true,
                           titleFontSize: isTablet ? 28 : 24,
                         ),
                       ),
-                      const SizedBox(width: 40), // 뒤로가기 버튼과 대칭을 위한 공간
+                      const SizedBox(width: 40),
                     ],
                   ),
 
                   const SizedBox(height: 12),
 
-                  // 통계 영역 - 웹 스타일의 통계 바 적용
-                  Container(
-                    width: double.infinity,
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildStatBox('시간', formattedTime, Icons.timer),
-                        _buildStatBox(
-                            'CPM', _currentCpm.toString(), Icons.speed),
-                        _buildStatBox(
-                            '정확도', '$accuracy%', Icons.check_circle_outline),
-                      ],
-                    ),
-                  ),
+                  // 모바일용 컴팩트 미니 대시보드 (타이머 + 통계를 통합)
+                  _buildMobileMiniDashboard(context, formattedTime, accuracy),
 
                   const SizedBox(height: 12),
 
                   // 타이핑 영역
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // 단어 표시 카드
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.backgroundLighter.withOpacity(0.7),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppColors.borderColor,
-                              width: 1,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 10,
-                                offset: Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              // 현재 목표 단어
-                              Text(
-                                _isPlaying
-                                    ? _currentWord
-                                    : '시작 버튼을 눌러 연습을 시작하세요',
-                                style: TextStyle(
-                                  fontSize: isTablet ? 24 : 20,
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              // 타이핑 피드백 영역
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.black26,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: AppColors.borderColor,
-                                    width: 1,
-                                  ),
-                                ),
-                                constraints: const BoxConstraints(
-                                  minHeight: 60,
-                                ),
-                                child: _isPlaying
-                                    ? TypingTextDisplay(
-                                        targetText: _currentWord,
-                                        typedText: _currentTypedText,
-                                        fontSize: isTablet ? 24 : 20,
-                                      )
-                                    : Center(
-                                        child: Text(
-                                          '아래에 타이핑을 시작하면 자동으로 게임이 시작됩니다',
-                                          style: TextStyle(
-                                            fontSize: isTablet ? 18 : 16,
-                                            color: AppColors.textSecondary
-                                                .withOpacity(0.5),
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildMobileTypingArea(context),
 
                   // 버튼 영역
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    margin: const EdgeInsets.symmetric(vertical: 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        if (_isPlaying && _isPaused)
-                          CosmicButton(
-                            label: '계속',
-                            icon: Icons.play_arrow,
-                            type: CosmicButtonType.primary,
-                            size: CosmicButtonSize.medium,
-                            onPressed: _startGame,
-                          )
-                        else if (_isPlaying && !_isPaused)
-                          CosmicButton(
-                            label: '일시정지',
-                            icon: Icons.pause,
-                            type: CosmicButtonType.outline,
-                            size: CosmicButtonSize.medium,
-                            onPressed: _pauseGame,
-                          ),
-                        if (_isPlaying)
-                          CosmicButton(
-                            label: '종료',
-                            icon: Icons.stop,
-                            type: CosmicButtonType.secondary,
-                            size: CosmicButtonSize.medium,
-                            onPressed: _endGame,
-                          )
-                        else
-                          CosmicButton(
-                            label: '단어 새로고침',
-                            icon: Icons.refresh,
-                            type: CosmicButtonType.outline,
-                            size: CosmicButtonSize.medium,
-                            onPressed: _loadWords,
-                          ),
-                      ],
+                  if (!_isPlaying)
+                    Container(
+                      margin: const EdgeInsets.symmetric(vertical: 12),
+                      child: _buildMobileControlButtons(context),
                     ),
-                  ),
                 ],
               ),
             ),
           ),
         ),
 
-        // 하단 입력 필드 영역 (키보드 위에 고정)
+        // 모바일에서 키보드 위에 고정되는 입력 필드
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -633,6 +510,7 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
                 child: TextField(
                   controller: _inputController,
                   focusNode: _inputFocusNode,
+                  enabled: !_isPaused,
                   style: TextStyle(
                     fontSize: isTablet ? 20 : 18,
                     color: AppColors.textPrimary,
@@ -644,7 +522,6 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
                         : _isPaused
                             ? '일시 정지됨'
                             : '입력을 시작하면 자동으로 게임이 시작됩니다',
-                    enabled: !_isPaused,
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.07),
                     border: OutlineInputBorder(
@@ -679,6 +556,7 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
                   onSubmitted: (_) => _inputController.text += ' ',
                 ),
               ),
+              // 하단 입력 필드 옆에 일시정지/재개 버튼 추가
               if (_isPaused)
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
@@ -700,6 +578,212 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
                 ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  // 모바일용 미니 대시보드 (타이머 + 통계가 통합된 컴팩트한 형태)
+  Widget _buildMobileMiniDashboard(
+      BuildContext context, String formattedTime, int accuracy) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 600),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLighter.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.borderColor,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // 타이머 영역
+          Container(
+            padding: const EdgeInsets.symmetric(
+              vertical: 8,
+              horizontal: 14,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.background.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.timer, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  formattedTime,
+                  style: const TextStyle(
+                    fontFamily: 'PressStart2P',
+                    fontSize: 20,
+                    color: AppColors.primary,
+                    shadows: [
+                      Shadow(
+                        color: AppColors.primary,
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 간단한 통계들 (작은 아이콘과 수치만 표시)
+          _buildMiniStatItem(Icons.text_fields, '$_totalWords', '단어'),
+          _buildMiniStatItem(Icons.speed, '$_currentCpm', 'CPM'),
+          _buildMiniStatItem(Icons.check_circle_outline, '$accuracy%', '정확도'),
+        ],
+      ),
+    );
+  }
+
+  // 미니 통계 아이템 (아이콘 + 수치)
+  Widget _buildMiniStatItem(IconData icon, String value, String label) {
+    return Tooltip(
+      message: label,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AppColors.primary, size: 14),
+              const SizedBox(width: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 모바일용 타이핑 영역 위젯
+  Widget _buildMobileTypingArea(BuildContext context) {
+    final isTablet = ResponsiveHelper.isTablet(context);
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 600),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 단어 표시 카드
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundLighter.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.borderColor,
+                width: 1,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // 현재 목표 단어
+                Text(
+                  _isPlaying ? _currentWord : '시작 버튼을 눌러 연습을 시작하세요',
+                  style: TextStyle(
+                    fontSize: isTablet ? 24 : 20,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 12),
+
+                // 타이핑 피드백 영역
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.borderColor,
+                      width: 1,
+                    ),
+                  ),
+                  constraints: const BoxConstraints(
+                    minHeight: 60,
+                  ),
+                  child: _isPlaying
+                      ? TypingTextDisplay(
+                          targetText: _currentWord,
+                          typedText: _currentTypedText,
+                          fontSize: isTablet ? 24 : 20,
+                        )
+                      : Center(
+                          child: Text(
+                            '아래에 타이핑을 시작하면 자동으로 게임이 시작됩니다',
+                            style: TextStyle(
+                              fontSize: isTablet ? 18 : 16,
+                              color: AppColors.textSecondary.withOpacity(0.5),
+                              fontStyle: FontStyle.italic,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 모바일용 컨트롤 버튼 - 최소한의 버튼만 표시
+  Widget _buildMobileControlButtons(BuildContext context) {
+    const buttonSize = CosmicButtonSize.medium;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CosmicButton(
+          label: '단어 새로고침',
+          icon: Icons.refresh,
+          type: CosmicButtonType.outline,
+          size: buttonSize,
+          onPressed: _loadWords,
         ),
       ],
     );

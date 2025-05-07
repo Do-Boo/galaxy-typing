@@ -5,6 +5,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -78,6 +79,9 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
       );
       _totalSeconds = settingsController.timeChallengeDuration;
       _remainingSeconds = _totalSeconds;
+
+      // 자동으로 입력 필드에 포커스 설정 (키보드 표시)
+      _inputFocusNode.requestFocus();
     });
 
     // 입력 텍스트 변경 리스너 추가
@@ -469,7 +473,8 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       // 키보드가 표시될 때 화면이 리사이징되도록 설정
-      resizeToAvoidBottomInset: true, // 모든 디바이스에서 리사이징 활성화
+      // 모바일 웹에서는 리사이징을 비활성화하여 키보드 공백 문제 해결
+      resizeToAvoidBottomInset: !kIsWeb,
       body: Stack(
         children: [
           // 배경
@@ -519,7 +524,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
                       Expanded(
                         child: PageHeader(
                           title: 'TIME CHALLENGE',
-                          subtitle: '제한 시간 내 최대한 많은 단어 입력하기',
+                          subtitle: '제한 시간 내 최대한 많은 단어 입력',
                           centerAlign: true,
                           titleFontSize: isTablet ? 28 : 24,
                         ),
@@ -530,13 +535,8 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
 
                   const SizedBox(height: 12),
 
-                  // 타이머 표시 - 웹 스타일 적용
-                  _buildTimerDisplay(context, formattedTime),
-
-                  const SizedBox(height: 12),
-
-                  // 상태 정보 표시 - 웹 스타일 적용
-                  _buildStatsDisplay(context, accuracy),
+                  // 모바일용 컴팩트 미니 대시보드 (타이머 + 통계를 통합)
+                  _buildMobileMiniDashboard(context, formattedTime, accuracy),
 
                   const SizedBox(height: 12),
 
@@ -545,11 +545,11 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
                       ? _buildCountdownOverlay(context)
                       : _buildMobileTypingArea(context),
 
-                  // 버튼 영역
+                  // 버튼 영역 - 모바일에 맞는 버튼 세트 사용
                   if (!_isCountingDown)
                     Container(
                       margin: const EdgeInsets.symmetric(vertical: 12),
-                      child: _buildControlButtons(context),
+                      child: _buildMobileControlButtons(context),
                     ),
                 ],
               ),
@@ -650,6 +650,117 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  // 모바일용 미니 대시보드 (타이머 + 통계가 통합된 컴팩트한 형태)
+  Widget _buildMobileMiniDashboard(
+      BuildContext context, String formattedTime, int accuracy) {
+    // 남은 시간에 따라 색상 변경
+    final timerColor = _remainingSeconds <= 10
+        ? AppColors.error
+        : _remainingSeconds <= 30
+            ? AppColors.warning
+            : AppColors.primary;
+
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 600),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLighter.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.borderColor,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // 타이머 영역
+          Container(
+            padding: const EdgeInsets.symmetric(
+              vertical: 8,
+              horizontal: 14,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.background.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: timerColor,
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.timer, color: timerColor, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  formattedTime,
+                  style: TextStyle(
+                    fontFamily: 'PressStart2P',
+                    fontSize: 20,
+                    color: timerColor,
+                    shadows: [
+                      Shadow(
+                        color: timerColor.withOpacity(0.6),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 간단한 통계들 (작은 아이콘과 수치만 표시)
+          _buildMiniStatItem(Icons.text_fields, '$_totalWords', '단어'),
+          _buildMiniStatItem(Icons.speed, '$_currentCpm', 'CPM'),
+          _buildMiniStatItem(Icons.check_circle_outline, '$accuracy%', '정확도'),
+        ],
+      ),
+    );
+  }
+
+  // 미니 통계 아이템 (아이콘 + 수치)
+  Widget _buildMiniStatItem(IconData icon, String value, String label) {
+    return Tooltip(
+      message: label,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: AppColors.primary, size: 14),
+              const SizedBox(width: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -900,15 +1011,6 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(maxWidth: 600),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-      decoration: BoxDecoration(
-        color: Colors.black26,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1,
-        ),
-      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -1174,45 +1276,6 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
             onSubmitted: (_) => _inputController.text += ' ',
           ),
         ),
-
-        // 다음 단어 미리보기
-        if (_isPlaying && !_isPaused && !_isFinished)
-          Container(
-            padding: const EdgeInsets.all(8),
-            constraints: BoxConstraints(
-              maxWidth: isDesktop ? 400 : 300,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.black12,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.borderColor,
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '다음 단어',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _wordList[(_currentWordIndex + 1) % _wordList.length],
-                  style: TextStyle(
-                    fontSize: isDesktop ? 16 : 14,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
   }
@@ -1289,6 +1352,31 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
           ),
         ),
       );
+    }
+  }
+
+  // 모바일용 컨트롤 버튼 - 최소한의 버튼만 표시
+  Widget _buildMobileControlButtons(BuildContext context) {
+    const buttonSize = CosmicButtonSize.medium;
+
+    // 게임이 끝났을 때
+    if (_isFinished) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CosmicButton(
+            label: '다시 도전',
+            icon: Icons.replay,
+            type: CosmicButtonType.primary,
+            size: buttonSize,
+            onPressed: _startCountdown,
+          ),
+        ],
+      );
+    }
+    // 카운트다운 중이나 일반 플레이 중에는 버튼 숨김 (이미 하단에 컨트롤 버튼 있음)
+    else {
+      return const SizedBox.shrink();
     }
   }
 
