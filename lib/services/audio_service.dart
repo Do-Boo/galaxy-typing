@@ -4,6 +4,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+
 import '../controllers/settings_controller.dart';
 
 /// 배경 음악 트랙
@@ -58,6 +59,18 @@ enum SoundType {
 
   /// 버튼 클릭 소리
   buttonClick,
+
+  /// 아이템 획득 소리
+  itemPickup,
+
+  /// 아이템 효과 종료 소리
+  itemExpire,
+
+  /// 아이템 사용 소리 (대폭발 등)
+  itemUse,
+
+  /// 보호막 활성화 소리
+  shieldActive,
 }
 
 /// 앱의 음향 효과를 관리하는 서비스
@@ -103,6 +116,36 @@ class AudioService {
     } catch (e) {
       if (kDebugMode) {
         print('음악 중지 오류: $e');
+      }
+    }
+  }
+
+  // 음악 음량 설정
+  Future<void> setVolume(double volume) async {
+    if (!_audioEnabled) return;
+
+    try {
+      // 재생 중인 음악의 볼륨 조절
+      await _musicPlayer.setVolume(volume);
+    } catch (e) {
+      if (kDebugMode) {
+        print('음량 조절 오류: $e');
+      }
+    }
+  }
+
+  // 효과음 음량 설정
+  Future<void> setSoundVolume(double volume) async {
+    if (!_audioEnabled) return;
+
+    try {
+      // 모든 효과음 플레이어의 볼륨 조절
+      for (final player in _soundPlayers.values) {
+        await player.setVolume(volume);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('효과음 음량 조절 오류: $e');
       }
     }
   }
@@ -202,7 +245,7 @@ class AudioService {
       // 이미 로드되지 않은 효과음인 경우 로드
       try {
         // AudioPlayer에는 ready 속성이 없으므로 플레이어 상태로 확인
-        final duration = await player.duration;
+        final duration = player.duration;
         final needsLoad = duration == null;
 
         if (needsLoad) {
@@ -243,6 +286,18 @@ class AudioService {
               break;
             case SoundType.buttonClick:
               assetPath = 'assets/sounds/button_click.mp3';
+              break;
+            case SoundType.itemPickup:
+              assetPath = 'assets/sounds/item_pickup.mp3';
+              break;
+            case SoundType.itemExpire:
+              assetPath = 'assets/sounds/item_expire.mp3';
+              break;
+            case SoundType.itemUse:
+              assetPath = 'assets/sounds/item_use.mp3';
+              break;
+            case SoundType.shieldActive:
+              assetPath = 'assets/sounds/shield_active.mp3';
               break;
           }
 
@@ -313,6 +368,19 @@ class AudioService {
   Future<void> setMusicVolume(double volume) async {
     if (!_audioEnabled) return; // 오디오 비활성화 상태면 실행 안함
     await _musicPlayer.setVolume(volume);
+  }
+
+  // 음향 전역 활성화/비활성화 설정
+  void setAudioEnabled(bool enabled) {
+    _audioEnabled = enabled;
+
+    if (!enabled) {
+      // 음향이 비활성화되면 모든 소리를 중지합니다.
+      _musicPlayer.stop();
+      for (final player in _soundPlayers.values) {
+        player.stop();
+      }
+    }
   }
 
   // 특정 트랙만 허용하고 나머지는 중지하는 메서드
