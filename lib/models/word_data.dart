@@ -4,6 +4,7 @@
 // 타자 연습에 사용되는 단어 데이터 관리
 
 import 'dart:math';
+
 import '../models/game_settings.dart';
 
 /// 타자 연습에 사용되는 단어 데이터 관리 클래스
@@ -356,6 +357,23 @@ class WordData {
           case DifficultyLevel.hard:
             return _hardWordsEnglish;
         }
+      case LanguageOption.mixedKoreanEnglish:
+        // 한영 혼합인 경우 두 언어의 단어를 모두 포함
+        List<String> mixedWords = [];
+        switch (difficulty) {
+          case DifficultyLevel.easy:
+            mixedWords = [..._easyWordsKorean, ..._easyWordsEnglish];
+            break;
+          case DifficultyLevel.medium:
+            mixedWords = [..._mediumWordsKorean, ..._mediumWordsEnglish];
+            break;
+          case DifficultyLevel.hard:
+            mixedWords = [..._hardWordsKorean, ..._hardWordsEnglish];
+            break;
+        }
+        // 섞어서 랜덤 순서로 반환
+        mixedWords.shuffle(Random());
+        return mixedWords;
     }
   }
 
@@ -374,6 +392,19 @@ class WordData {
           ..._mediumWordsEnglish,
           ..._hardWordsEnglish
         ];
+      case LanguageOption.mixedKoreanEnglish:
+        // 한영 혼합 모드는 양쪽 언어의 모든 단어를 포함
+        List<String> allMixedWords = [
+          ..._easyWordsKorean,
+          ..._mediumWordsKorean,
+          ..._hardWordsKorean,
+          ..._easyWordsEnglish,
+          ..._mediumWordsEnglish,
+          ..._hardWordsEnglish
+        ];
+        // 섞어서 반환
+        allMixedWords.shuffle(Random());
+        return allMixedWords;
     }
   }
 
@@ -479,8 +510,12 @@ class WordData {
     // 선택한 언어의 일반 단어도 일부 추가
     if (language == LanguageOption.korean) {
       result.addAll(_easyWordsKorean.take(10));
-    } else {
+    } else if (language == LanguageOption.english) {
       result.addAll(_easyWordsEnglish.take(10));
+    } else if (language == LanguageOption.mixedKoreanEnglish) {
+      // 한영 혼합인 경우 양쪽 언어에서 단어를 추가
+      result.addAll(_easyWordsKorean.take(5));
+      result.addAll(_easyWordsEnglish.take(5));
     }
 
     return result;
