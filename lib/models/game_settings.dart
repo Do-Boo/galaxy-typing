@@ -34,6 +34,9 @@ enum LanguageOption {
 
   /// 영어
   english,
+
+  /// 한영 혼합
+  mixedKoreanEnglish,
 }
 
 enum SoundEffectLevel { off, low, medium, high }

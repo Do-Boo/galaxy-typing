@@ -39,6 +39,7 @@ class SettingsController with ChangeNotifier {
   static const String _keySoundVolume = 'sound_volume';
   static const String _keyLanguage = 'language';
   static const String _keyTimerDuration = 'timer_duration';
+  static const String _keyTypingLanguage = 'typing_language';
 
   // 설정 값들
   double _musicVolume = 0.5;
@@ -55,6 +56,7 @@ class SettingsController with ChangeNotifier {
   bool _musicEnabled = true;
   int _timerDuration = 60; // 기본 타이머 시간 (초)
   LanguageOption _language = LanguageOption.korean; // 기본 언어: 한국어
+  LanguageOption _typingLanguage = LanguageOption.korean; // 기본 타자연습 언어: 한국어
 
   // 생성자 (private)
   SettingsController._create();
@@ -119,6 +121,9 @@ class SettingsController with ChangeNotifier {
     _timeChallengeDuration = _prefs.getInt(_keyTimeChallengeDuration) ?? 60;
     _timerDuration = _prefs.getInt(_keyTimerDuration) ?? 60;
 
+    final typingLanguageIndex = _prefs.getInt(_keyTypingLanguage) ?? 0;
+    _typingLanguage = LanguageOption.values[typingLanguageIndex];
+
     notifyListeners();
   }
 
@@ -145,6 +150,7 @@ class SettingsController with ChangeNotifier {
     await _prefs.setDouble(_keySoundVolume, _soundEffectsVolume);
     await _prefs.setInt(_keyLanguage, _language.index);
     await _prefs.setInt(_keyTimerDuration, _timerDuration);
+    await _prefs.setInt(_keyTypingLanguage, _typingLanguage.index);
   }
 
   // 기본값으로 재설정
@@ -163,6 +169,7 @@ class SettingsController with ChangeNotifier {
     _soundEnabled = true;
     _musicEnabled = true;
     _language = LanguageOption.korean;
+    _typingLanguage = LanguageOption.korean;
 
     await _saveSettings();
     notifyListeners();
@@ -231,6 +238,14 @@ class SettingsController with ChangeNotifier {
   LanguageOption get language => _language;
   set language(LanguageOption value) {
     _language = value;
+    _saveSettingsAsync();
+    notifyListeners();
+  }
+
+  // [getter/setter] - TypingLanguage
+  LanguageOption get typingLanguage => _typingLanguage;
+  set typingLanguage(LanguageOption value) {
+    _typingLanguage = value;
     _saveSettingsAsync();
     notifyListeners();
   }
@@ -307,6 +322,7 @@ class SettingsController with ChangeNotifier {
 
     print('===== 현재 설정값 =====');
     print('언어: $_language');
+    print('타자연습 언어: $_typingLanguage');
     print('글꼴 크기: $_fontSize');
     print('다크 테마: $_darkThemeEnabled');
     print('고대비 모드: $_highContrastMode');
@@ -329,6 +345,7 @@ class SettingsController with ChangeNotifier {
 
     print('===== 저장된 설정값 =====');
     print('언어: ${prefs.getInt(_keyLanguage)}');
+    print('타자연습 언어: ${prefs.getInt(_keyTypingLanguage)}');
     print('글꼴 크기: ${prefs.getDouble(_keyFontSize)}');
     print('다크 테마: ${prefs.getBool(_keyDarkThemeEnabled)}');
     print('고대비 모드: ${prefs.getBool(_keyHighContrastMode)}');

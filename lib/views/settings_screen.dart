@@ -252,6 +252,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 타자연습 언어 설정
+          _buildSettingSection(
+            context: context,
+            title: context.tr('typing_language'),
+            icon: Icons.keyboard,
+            child: _buildTypingLanguageSelector(context, settingsController),
+          ),
+
+          const Divider(color: AppColors.borderColor),
+
           // 난이도 설정
           _buildSettingSection(
             context: context,
@@ -739,6 +749,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
           color: AppColors.textSecondary,
         ),
       ],
+    );
+  }
+
+  // 타자연습 언어 선택 위젯
+  Widget _buildTypingLanguageSelector(
+    BuildContext context,
+    SettingsController settingsController,
+  ) {
+    return SegmentedButton<LanguageOption>(
+      segments: [
+        ButtonSegment<LanguageOption>(
+          value: LanguageOption.korean,
+          label: Text(context.tr('korean_typing')),
+          icon: const Icon(Icons.language),
+        ),
+        ButtonSegment<LanguageOption>(
+          value: LanguageOption.english,
+          label: Text(context.tr('english_typing')),
+          icon: const Icon(Icons.language),
+        ),
+        ButtonSegment<LanguageOption>(
+          value: LanguageOption.mixedKoreanEnglish,
+          label: Text(context.tr('mixed_typing')),
+          icon: const Icon(Icons.language),
+        ),
+      ],
+      selected: {settingsController.typingLanguage},
+      onSelectionChanged: (newSelection) {
+        if (newSelection.isNotEmpty) {
+          settingsController.typingLanguage = newSelection.first;
+        }
+      },
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith<Color>(
+          (states) {
+            if (states.contains(WidgetState.selected)) {
+              return AppColors.primary;
+            }
+            return AppColors.backgroundLighter;
+          },
+        ),
+      ),
     );
   }
 

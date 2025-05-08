@@ -57,6 +57,12 @@ class AppLocalizations {
       'cancel': '취소',
       'reset_success': '설정이 기본값으로 재설정되었습니다',
 
+      // 타자연습 언어 설정
+      'typing_language': '타자연습 언어',
+      'korean_typing': '한글 타자연습',
+      'english_typing': '영문 타자연습',
+      'mixed_typing': '한영 혼합 타자연습',
+
       // 난이도
       'easy': '쉬움',
       'medium': '보통',
@@ -123,6 +129,12 @@ class AppLocalizations {
       'reset': 'Reset',
       'cancel': 'Cancel',
       'reset_success': 'Settings have been reset to defaults',
+
+      // 타자연습 언어 설정
+      'typing_language': 'Typing Language',
+      'korean_typing': 'Korean Typing Practice',
+      'english_typing': 'English Typing Practice',
+      'mixed_typing': 'Mixed Typing Practice',
 
       // 난이도
       'easy': 'Easy',
