@@ -23,6 +23,7 @@ class AppLocalizations {
 
       // 설정 관련 알림
       'settings_auto_saved': '설정이 자동으로 저장되었습니다',
+      'settings_saved': '설정이 저장되었습니다',
 
       // 메인 화면
       'my_typing_status': '내 타이핑 현황',
@@ -95,6 +96,7 @@ class AppLocalizations {
 
       // 설정 관련 알림
       'settings_auto_saved': 'Settings automatically saved',
+      'settings_saved': 'Settings saved',
 
       // 메인 화면
       'my_typing_status': 'My Typing Stats',

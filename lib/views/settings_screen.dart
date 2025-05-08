@@ -45,44 +45,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // didChangeDependencies에서 컨트롤러 참조 가져오기
     _settingsController =
         Provider.of<SettingsController>(context, listen: false);
-
-    // 설정 변경 감지 및 알림 리스너 추가
-    _settingsController.addListener(_onSettingsChanged);
   }
 
   @override
   void dispose() {
-    // 저장된 필드 참조를 사용하여 리스너 해제
-    _settingsController.removeListener(_onSettingsChanged);
     super.dispose();
-  }
-
-  // 마지막 알림 표시 시간 추적
-  DateTime? _lastNotificationTime;
-
-  // 설정 변경 콜백
-  void _onSettingsChanged() {
-    // 너무 빈번한 알림 방지 (최소 3초 간격)
-    final now = DateTime.now();
-    if (_lastNotificationTime != null &&
-        now.difference(_lastNotificationTime!).inSeconds < 3) {
-      return;
-    }
-
-    _lastNotificationTime = now;
-
-    // 설정 자동 저장 메시지 표시
-    if (mounted) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.tr('settings_auto_saved')),
-          backgroundColor: AppColors.success,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
   }
 
   @override
@@ -194,6 +161,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               onPressed: () async {
                                 final navigator = Navigator.of(context);
                                 await _settingsController.saveSettings();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text(context.tr('settings_saved')),
+                                      backgroundColor: AppColors.success,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
                                 navigator.pop();
                               },
                             ),

@@ -72,9 +72,8 @@ class SettingsController with ChangeNotifier {
     _prefs = await SharedPreferences.getInstance();
     _loadSettings();
 
-    // 설정 변경 시 자동 저장 리스너 추가
+    // 설정 변경 시 오디오 설정만 업데이트하고 자동 저장은 하지 않음
     addListener(() {
-      _saveSettingsAsync();
       _updateAudioSettings();
     });
   }
@@ -187,35 +186,30 @@ class SettingsController with ChangeNotifier {
   double get musicVolume => _musicVolume;
   Future<void> setMusicVolume(double value) async {
     _musicVolume = value;
-    await _saveSettings();
     notifyListeners();
   }
 
   double get soundEffectsVolume => _soundEffectsVolume;
   Future<void> setSoundEffectsVolume(double value) async {
     _soundEffectsVolume = value;
-    await _saveSettings();
     notifyListeners();
   }
 
   bool get typingSoundEnabled => _typingSoundEnabled;
   Future<void> setTypingSoundEnabled(bool value) async {
     _typingSoundEnabled = value;
-    await _saveSettings();
     notifyListeners();
   }
 
   bool get particleEffectsEnabled => _particleEffectsEnabled;
   Future<void> setParticleEffectsEnabled(bool value) async {
     _particleEffectsEnabled = value;
-    await _saveSettings();
     notifyListeners();
   }
 
   bool get typingEffectsEnabled => _typingEffectsEnabled;
   Future<void> setTypingEffectsEnabled(bool value) async {
     _typingEffectsEnabled = value;
-    await _saveSettings();
     notifyListeners();
   }
 
@@ -223,14 +217,12 @@ class SettingsController with ChangeNotifier {
   double get fontSize => _fontSize;
   set fontSize(double size) {
     _fontSize = size;
-    _saveSettingsAsync();
     notifyListeners();
   }
 
   DifficultyLevel get difficulty => _difficulty;
   set difficulty(DifficultyLevel level) {
     _difficulty = level;
-    _saveSettingsAsync();
     notifyListeners();
   }
 
@@ -238,7 +230,6 @@ class SettingsController with ChangeNotifier {
   LanguageOption get language => _language;
   set language(LanguageOption value) {
     _language = value;
-    _saveSettingsAsync();
     notifyListeners();
   }
 
@@ -246,35 +237,30 @@ class SettingsController with ChangeNotifier {
   LanguageOption get typingLanguage => _typingLanguage;
   set typingLanguage(LanguageOption value) {
     _typingLanguage = value;
-    _saveSettingsAsync();
     notifyListeners();
   }
 
   int get timeChallengeDuration => _timeChallengeDuration;
   Future<void> setTimeChallengeDuration(int value) async {
     _timeChallengeDuration = value;
-    await _saveSettings();
     notifyListeners();
   }
 
   bool get darkThemeEnabled => _darkThemeEnabled;
   set darkThemeEnabled(bool enabled) {
     _darkThemeEnabled = enabled;
-    _saveSettingsAsync();
     notifyListeners();
   }
 
   bool get highContrastMode => _highContrastMode;
   set highContrastMode(bool value) {
     _highContrastMode = value;
-    _saveSettingsAsync();
     notifyListeners();
   }
 
   bool get soundEnabled => _soundEnabled;
   set soundEnabled(bool value) {
     _soundEnabled = value;
-    _saveSettingsAsync();
     notifyListeners();
   }
 
@@ -282,7 +268,6 @@ class SettingsController with ChangeNotifier {
   set musicEnabled(bool value) {
     _musicEnabled = value;
     _updateAudioSettings();
-    _saveSettingsAsync();
     notifyListeners();
   }
 
@@ -290,7 +275,6 @@ class SettingsController with ChangeNotifier {
   set soundVolume(double value) {
     _soundEffectsVolume = value;
     _audioService.setSoundVolume(value);
-    _saveSettingsAsync();
     notifyListeners();
   }
 
@@ -302,7 +286,6 @@ class SettingsController with ChangeNotifier {
   int get timerDuration => _timerDuration;
   set timerDuration(int seconds) {
     _timerDuration = seconds;
-    _saveSettingsAsync();
     notifyListeners();
   }
 
