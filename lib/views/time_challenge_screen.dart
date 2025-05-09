@@ -65,11 +65,21 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
   void initState() {
     super.initState();
 
-    // 시간 도전 화면에서는 음악을 재생하지 않음 (space_defense_screen 전용)
+    // 시간 도전 화면에서는 음악을 재생하지 않음
     _audioService.stop(); // 모든 음악 중지
 
-    // 단어 목록 생성
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // 즉시 오디오 서비스 초기화 및 카운트다운 소리 미리 로드
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _audioService.initialize();
+      // 카운트다운 소리 미리 로드
+      try {
+        await _audioService.playSound(SoundType.countdown);
+        _audioService.stopCountdown();
+      } catch (e) {
+        // 오류 무시 (초기화 목적이므로)
+      }
+
+      // 나머지 초기화 작업
       _loadWords();
 
       // 설정에서 총 시간 가져오기

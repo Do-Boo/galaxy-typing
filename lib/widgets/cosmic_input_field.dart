@@ -2,8 +2,10 @@
 // 작성: 2024-05-01
 // 앱 전체에서 사용되는 일관된 입력 필드 스타일 위젯
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../utils/app_theme.dart';
 
 class CosmicInputField extends StatelessWidget {
@@ -29,7 +31,7 @@ class CosmicInputField extends StatelessWidget {
   final EdgeInsets? contentPadding;
 
   const CosmicInputField({
-    Key? key,
+    super.key,
     this.label,
     this.hintText,
     this.controller,
@@ -50,10 +52,16 @@ class CosmicInputField extends StatelessWidget {
     this.errorText,
     this.helperText,
     this.contentPadding,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
+    // 웹 플랫폼에서 키보드 관련 이슈를 해결하기 위한 추가 설정
+    final TextStyle inputStyle = AppTextStyles.bodyLarge(context).copyWith(
+      // 웹 모바일 환경에서는 작은 폰트 크기가 줌 이슈를 일으킬 수 있으므로 최소 16px로 설정
+      fontSize: kIsWeb ? 16.0 : AppTextStyles.bodyLarge(context).fontSize,
+    );
+
     return TextField(
       controller: controller,
       focusNode: focusNode,
@@ -67,10 +75,15 @@ class CosmicInputField extends StatelessWidget {
       onSubmitted: onSubmitted,
       maxLength: maxLength,
       inputFormatters: inputFormatters,
-      style: AppTextStyles.bodyLarge(context),
+      style: inputStyle,
       cursorColor: AppColors.primary,
       cursorWidth: 2,
-      cursorRadius: Radius.circular(2),
+      cursorRadius: const Radius.circular(2),
+      // 웹 환경에서 스페이스바 문제 해결을 위한 추가 설정
+      enableInteractiveSelection: true,
+      enableSuggestions: true,
+      // 웹 환경에서 자동 교정 비활성화
+      autocorrect: !kIsWeb,
       decoration: InputDecoration(
         labelText: label,
         hintText: hintText,
@@ -81,7 +94,7 @@ class CosmicInputField extends StatelessWidget {
           color: AppColors.error,
         ),
         contentPadding: contentPadding ??
-            EdgeInsets.symmetric(
+            const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 12,
             ),
@@ -89,28 +102,28 @@ class CosmicInputField extends StatelessWidget {
         fillColor: AppColors.backgroundLighter.withOpacity(0.5),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
+          borderSide: const BorderSide(
             color: AppColors.borderColor,
             width: 1,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
+          borderSide: const BorderSide(
             color: AppColors.borderColor,
             width: 1,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
+          borderSide: const BorderSide(
             color: AppColors.primary,
             width: 1.5,
           ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
+          borderSide: const BorderSide(
             color: AppColors.error,
             width: 1,
           ),

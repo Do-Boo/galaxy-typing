@@ -54,166 +54,183 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 설정 컨트롤러를 listen: true로 사용하여 UI 즉시 업데이트
+    final settingsController =
+        Provider.of<SettingsController>(context, listen: true);
     final isDesktop = ResponsiveHelper.isDesktop(context);
     final isTablet = ResponsiveHelper.isTablet(context);
     final screenPadding = ResponsiveHelper.screenPadding(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          // 배경
-          SpaceBackground(
-            particleDensity: isDesktop ? 150 : (isTablet ? 100 : 70),
-          ),
+    return WillPopScope(
+      // 뒤로가기 버튼 처리
+      onWillPop: () => _onWillPop(context, settingsController),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
+          children: [
+            // 배경
+            SpaceBackground(
+              particleDensity: isDesktop ? 150 : (isTablet ? 100 : 70),
+            ),
 
-          // 메인 콘텐츠
-          SafeArea(
-            child: ResponsiveHelper.centeredContent(
-              context: context,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: screenPadding,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // 헤더 및 뒤로가기 버튼
-                      Row(
-                        children: [
-                          CosmicBackButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                          Expanded(
-                            child: PageHeader(
-                              title: context.tr('settings'),
-                              titleFontSize: isDesktop ? 32 : 24,
+            // 메인 콘텐츠
+            SafeArea(
+              child: ResponsiveHelper.centeredContent(
+                context: context,
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Padding(
+                    padding: screenPadding,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // 헤더 및 뒤로가기 버튼
+                        Row(
+                          children: [
+                            CosmicBackButton(
+                              onPressed: () async {
+                                // 저장되지 않은 변경 사항이 있으면 경고 대화상자 표시
+                                if (settingsController.hasUnsavedChanges) {
+                                  final shouldProceed =
+                                      await _showUnsavedChangesDialog(context);
+                                  if (!shouldProceed) return;
+                                }
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
                             ),
-                          ),
-                        ],
-                      ),
+                            Expanded(
+                              child: PageHeader(
+                                title: context.tr('settings'),
+                                titleFontSize: isDesktop ? 32 : 24,
+                              ),
+                            ),
+                          ],
+                        ),
 
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                      // 모바일 스타일로 통일 - 항상 세로로 배치
-                      Column(
-                        children: [
-                          _buildGameSettingsCard(context, _settingsController),
-                          const SizedBox(height: 24),
-                          _buildAppSettingsCard(context, _settingsController),
-                          const SizedBox(height: 24),
-                          _buildAccessibilitySettingsCard(
-                              context, _settingsController),
-                        ],
-                      ),
+                        // 모바일 스타일로 통일 - 항상 세로로 배치
+                        Column(
+                          children: [
+                            _buildGameSettingsCard(context, settingsController),
+                            const SizedBox(height: 24),
+                            _buildAppSettingsCard(context, settingsController),
+                            const SizedBox(height: 24),
+                            _buildAccessibilitySettingsCard(
+                                context, settingsController),
+                          ],
+                        ),
 
-                      const SizedBox(height: 24),
+                        const SizedBox(height: 24),
 
-                      // 하단 버튼들
-                      Row(
-                        children: [
-                          if (isDesktop || isTablet)
-                            // 기본값으로 재설정 버튼 (데스크톱 및 태블릿에서는 좌측에 배치)
+                        // 하단 버튼들
+                        Row(
+                          children: [
+                            if (isDesktop || isTablet)
+                              // 기본값으로 재설정 버튼 (데스크톱 및 태블릿에서는 좌측에 배치)
+                              Expanded(
+                                child: CosmicButton(
+                                  label: context.tr('reset_defaults'),
+                                  type: CosmicButtonType.secondary,
+                                  size: isDesktop
+                                      ? CosmicButtonSize.large
+                                      : CosmicButtonSize.medium,
+                                  icon: Icons.restore,
+                                  isFullWidth: true,
+                                  onPressed: () async {
+                                    // 재설정 확인 대화상자 표시
+                                    final confirmed =
+                                        await _showResetConfirmDialog(context);
+                                    if (confirmed) {
+                                      await settingsController
+                                          .resetToDefaults();
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                context.tr('reset_success')),
+                                            backgroundColor: AppColors.success,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+
+                            if (isDesktop || isTablet)
+                              const SizedBox(width: 16),
+
+                            // 저장 버튼 (데스크톱 및 태블릿에서는 우측에 배치)
                             Expanded(
                               child: CosmicButton(
-                                label: context.tr('reset_defaults'),
-                                type: CosmicButtonType.secondary,
+                                label: context.tr('save'),
+                                type: CosmicButtonType.primary,
                                 size: isDesktop
                                     ? CosmicButtonSize.large
                                     : CosmicButtonSize.medium,
-                                icon: Icons.restore,
+                                icon: Icons.save,
                                 isFullWidth: true,
                                 onPressed: () async {
-                                  // 재설정 확인 대화상자 표시
-                                  final confirmed =
-                                      await _showResetConfirmDialog(context);
-                                  if (confirmed) {
-                                    await _settingsController.resetToDefaults();
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content:
-                                              Text(context.tr('reset_success')),
-                                          backgroundColor: AppColors.success,
-                                        ),
-                                      );
-                                    }
+                                  final navigator = Navigator.of(context);
+                                  await settingsController.saveSettings();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text(context.tr('settings_saved')),
+                                        backgroundColor: AppColors.success,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
                                   }
+                                  navigator.pop();
                                 },
                               ),
                             ),
+                          ],
+                        ),
 
-                          if (isDesktop || isTablet) const SizedBox(width: 16),
-
-                          // 저장 버튼 (데스크톱 및 태블릿에서는 우측에 배치)
-                          Expanded(
+                        // 모바일에서는 재설정 버튼 하단에 추가
+                        if (!isDesktop && !isTablet)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
                             child: CosmicButton(
-                              label: context.tr('save'),
-                              type: CosmicButtonType.primary,
-                              size: isDesktop
-                                  ? CosmicButtonSize.large
-                                  : CosmicButtonSize.medium,
-                              icon: Icons.save,
+                              label: context.tr('reset_defaults'),
+                              type: CosmicButtonType.secondary,
+                              size: CosmicButtonSize.medium,
+                              icon: Icons.restore,
                               isFullWidth: true,
                               onPressed: () async {
-                                final navigator = Navigator.of(context);
-                                await _settingsController.saveSettings();
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text(context.tr('settings_saved')),
-                                      backgroundColor: AppColors.success,
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
+                                // 재설정 확인 대화상자 표시
+                                final confirmed =
+                                    await _showResetConfirmDialog(context);
+                                if (confirmed) {
+                                  await settingsController.resetToDefaults();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text(context.tr('reset_success')),
+                                        backgroundColor: AppColors.success,
+                                      ),
+                                    );
+                                  }
                                 }
-                                navigator.pop();
                               },
                             ),
                           ),
-                        ],
-                      ),
-
-                      // 모바일에서는 재설정 버튼 하단에 추가
-                      if (!isDesktop && !isTablet)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: CosmicButton(
-                            label: context.tr('reset_defaults'),
-                            type: CosmicButtonType.secondary,
-                            size: CosmicButtonSize.medium,
-                            icon: Icons.restore,
-                            isFullWidth: true,
-                            onPressed: () async {
-                              // 재설정 확인 대화상자 표시
-                              final confirmed =
-                                  await _showResetConfirmDialog(context);
-                              if (confirmed) {
-                                await _settingsController.resetToDefaults();
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text(context.tr('reset_success')),
-                                      backgroundColor: AppColors.success,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -804,6 +821,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 TextButton(
                   child: Text(
                     context.tr('reset'),
+                    style: AppTextStyles.bodyMedium(context).copyWith(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop(true);
+                  },
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+  }
+
+  // 저장되지 않은 변경 사항이 있는지 확인하는 메서드
+  Future<bool> _onWillPop(
+      BuildContext context, SettingsController settingsController) async {
+    if (settingsController.hasUnsavedChanges) {
+      final shouldProceed = await _showUnsavedChangesDialog(context);
+      return shouldProceed;
+    }
+    return true;
+  }
+
+  // 저장되지 않은 변경 사항이 있는지 확인하는 대화상자
+  Future<bool> _showUnsavedChangesDialog(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: AppColors.backgroundLighter,
+              title: Text(
+                context.tr('unsaved_changes_title'),
+                style: AppTextStyles.bodyLarge(context).copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Text(
+                context.tr('unsaved_changes_message'),
+                style: AppTextStyles.bodyMedium(context),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: Text(
+                    context.tr('cancel'),
+                    style: AppTextStyles.bodyMedium(context).copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).pop(false);
+                  },
+                ),
+                TextButton(
+                  child: Text(
+                    context.tr('proceed'),
                     style: AppTextStyles.bodyMedium(context).copyWith(
                       color: AppColors.error,
                       fontWeight: FontWeight.bold,

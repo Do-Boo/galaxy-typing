@@ -1,7 +1,9 @@
 // 다국어 지원 유틸리티
 // 작성: 2024-06-10
+// 업데이트: 2024-06-20 (미저장 변경사항 및 한영 혼합 관련 번역 추가)
 // 앱의 텍스트를 다국어로 표시하기 위한 유틸리티
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,6 +15,7 @@ class AppLocalizations {
   // 지원하는 언어 코드
   static const String kLanguageKorean = 'ko';
   static const String kLanguageEnglish = 'en';
+  static const String kLanguageMixed = 'ko_en';
 
   // 모든 번역 데이터
   static final Map<String, Map<String, String>> _localizedValues = {
@@ -24,6 +27,9 @@ class AppLocalizations {
       // 설정 관련 알림
       'settings_auto_saved': '설정이 자동으로 저장되었습니다',
       'settings_saved': '설정이 저장되었습니다',
+      'unsaved_changes_title': '저장되지 않은 변경사항',
+      'unsaved_changes_message': '변경사항이 저장되지 않았습니다. 저장하지 않고 나가시겠습니까?',
+      'proceed': '나가기',
 
       // 메인 화면
       'my_typing_status': '내 타이핑 현황',
@@ -97,6 +103,10 @@ class AppLocalizations {
       // 설정 관련 알림
       'settings_auto_saved': 'Settings automatically saved',
       'settings_saved': 'Settings saved',
+      'unsaved_changes_title': 'Unsaved Changes',
+      'unsaved_changes_message':
+          'You have unsaved changes. Are you sure you want to leave without saving?',
+      'proceed': 'Leave',
 
       // 메인 화면
       'my_typing_status': 'My Typing Stats',
@@ -170,20 +180,70 @@ class AppLocalizations {
     // 설정에서 현재 언어 가져오기
     final settingsController =
         Provider.of<SettingsController>(context, listen: false);
-    final locale = settingsController.language == LanguageOption.korean
-        ? kLanguageKorean
-        : kLanguageEnglish;
+
+    String locale;
+    switch (settingsController.language) {
+      case LanguageOption.korean:
+        locale = kLanguageKorean;
+        break;
+      case LanguageOption.english:
+        locale = kLanguageEnglish;
+        break;
+      case LanguageOption.mixedKoreanEnglish:
+        // 한영 혼합 모드에서는 기본적으로 한국어 사용
+        locale = kLanguageKorean;
+        break;
+      default:
+        locale = kLanguageKorean;
+    }
 
     // 해당 키의 번역 반환 (없으면 키 그대로 반환)
-    return _localizedValues[locale]?[key] ?? key;
+    final translation = _localizedValues[locale]?[key];
+    if (translation == null && kDebugMode) {
+      print('Missing translation for key: $key in $locale');
+    }
+    return translation ?? key;
   }
 
   /// 언어 코드에 따른 번역된 텍스트 가져오기 (컨텍스트 없이 사용 가능)
   static String getWithLanguage(String key, LanguageOption language) {
-    final locale =
-        language == LanguageOption.korean ? kLanguageKorean : kLanguageEnglish;
+    String locale;
+    switch (language) {
+      case LanguageOption.korean:
+        locale = kLanguageKorean;
+        break;
+      case LanguageOption.english:
+        locale = kLanguageEnglish;
+        break;
+      case LanguageOption.mixedKoreanEnglish:
+        // 한영 혼합 모드에서는 기본적으로 한국어 사용
+        locale = kLanguageKorean;
+        break;
+      default:
+        locale = kLanguageKorean;
+    }
 
     return _localizedValues[locale]?[key] ?? key;
+  }
+
+  /// 키가 정의되어 있는지 확인
+  static bool hasKey(String key, LanguageOption language) {
+    String locale;
+    switch (language) {
+      case LanguageOption.korean:
+        locale = kLanguageKorean;
+        break;
+      case LanguageOption.english:
+        locale = kLanguageEnglish;
+        break;
+      case LanguageOption.mixedKoreanEnglish:
+        locale = kLanguageKorean;
+        break;
+      default:
+        locale = kLanguageKorean;
+    }
+
+    return _localizedValues[locale]?.containsKey(key) ?? false;
   }
 }
 

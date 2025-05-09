@@ -3,6 +3,7 @@
 // 업데이트: 2024-06-02 (다국어 지원 추가)
 // 업데이트: 2024-06-10 (설정 적용 및 저장 로직 개선)
 // 업데이트: 2024-06-12 (디버깅 도구 추가)
+// 업데이트: 2024-06-20 (설정 즉시 적용 로직 개선)
 // 앱 설정을 관리하는 컨트롤러
 
 import 'package:flutter/foundation.dart';
@@ -58,6 +59,9 @@ class SettingsController with ChangeNotifier {
   LanguageOption _language = LanguageOption.korean; // 기본 언어: 한국어
   LanguageOption _typingLanguage = LanguageOption.korean; // 기본 타자연습 언어: 한국어
 
+  // 변경사항 추적을 위한 플래그
+  bool _hasUnsavedChanges = false;
+
   // 생성자 (private)
   SettingsController._create();
 
@@ -75,6 +79,8 @@ class SettingsController with ChangeNotifier {
     // 설정 변경 시 오디오 설정만 업데이트하고 자동 저장은 하지 않음
     addListener(() {
       _updateAudioSettings();
+      // 변경 사항이 있음을 표시
+      _hasUnsavedChanges = true;
     });
   }
 
@@ -83,16 +89,22 @@ class SettingsController with ChangeNotifier {
     // 음향 전역 활성화/비활성화 설정
     _audioService.setAudioEnabled(_soundEnabled);
 
+    // 효과음 볼륨 설정
+    if (_soundEnabled) {
+      _audioService.setSoundVolume(_soundEffectsVolume);
+    } else {
+      // 효과음 비활성화 시 볼륨 0으로 설정
+      _audioService.setSoundVolume(0.0);
+    }
+
     // 현재 설정에 따라 오디오 서비스 업데이트
     if (_musicEnabled) {
       _audioService.setMusicVolume(_musicVolume);
     } else {
-      // 음악 비활성화 시 음악 중지
+      // 음악 비활성화 시 음악 중지 및 볼륨 0으로 설정
+      _audioService.setMusicVolume(0.0);
       _audioService.stop();
     }
-
-    // 효과음 볼륨 설정
-    _audioService.setSoundVolume(_soundEffectsVolume);
   }
 
   // 설정 로드
@@ -122,6 +134,9 @@ class SettingsController with ChangeNotifier {
 
     final typingLanguageIndex = _prefs.getInt(_keyTypingLanguage) ?? 0;
     _typingLanguage = LanguageOption.values[typingLanguageIndex];
+
+    // 설정 로드 후 오디오 설정 즉시 업데이트
+    _updateAudioSettings();
 
     notifyListeners();
   }
@@ -170,7 +185,11 @@ class SettingsController with ChangeNotifier {
     _language = LanguageOption.korean;
     _typingLanguage = LanguageOption.korean;
 
+    // 즉시 오디오 설정 업데이트
+    _updateAudioSettings();
+
     await _saveSettings();
+    _hasUnsavedChanges = false;
     notifyListeners();
   }
 
@@ -184,14 +203,28 @@ class SettingsController with ChangeNotifier {
   // Getters 및 Setters
 
   double get musicVolume => _musicVolume;
+  set musicVolume(double value) {
+    _musicVolume = value;
+    _audioService.setMusicVolume(value);
+    notifyListeners();
+  }
+
   Future<void> setMusicVolume(double value) async {
     _musicVolume = value;
+    _audioService.setMusicVolume(value);
     notifyListeners();
   }
 
   double get soundEffectsVolume => _soundEffectsVolume;
+  set soundEffectsVolume(double value) {
+    _soundEffectsVolume = value;
+    _audioService.setSoundVolume(value);
+    notifyListeners();
+  }
+
   Future<void> setSoundEffectsVolume(double value) async {
     _soundEffectsVolume = value;
+    _audioService.setSoundVolume(value);
     notifyListeners();
   }
 
@@ -261,13 +294,21 @@ class SettingsController with ChangeNotifier {
   bool get soundEnabled => _soundEnabled;
   set soundEnabled(bool value) {
     _soundEnabled = value;
+    // 즉시 효과음 활성화/비활성화 적용
+    _audioService.setAudioEnabled(value);
     notifyListeners();
   }
 
   bool get musicEnabled => _musicEnabled;
   set musicEnabled(bool value) {
     _musicEnabled = value;
-    _updateAudioSettings();
+    // 즉시 음악 활성화/비활성화 적용
+    if (!value) {
+      _audioService.stop();
+      _audioService.setMusicVolume(0.0);
+    } else {
+      _audioService.setMusicVolume(_musicVolume);
+    }
     notifyListeners();
   }
 
@@ -289,9 +330,14 @@ class SettingsController with ChangeNotifier {
     notifyListeners();
   }
 
+  // 저장되지 않은 변경 사항이 있는지 확인
+  bool get hasUnsavedChanges => _hasUnsavedChanges;
+
   // 설정 저장
   Future<void> saveSettings() async {
     await _saveSettings();
+    // 변경 사항 저장 완료 후 플래그 초기화
+    _hasUnsavedChanges = false;
     if (kDebugMode) {
       print('설정이 저장되었습니다.');
       printCurrentSettings();
