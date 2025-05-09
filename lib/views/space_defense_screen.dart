@@ -139,7 +139,7 @@ class _SpaceDefenseScreenState extends State<SpaceDefenseScreen>
     // 난이도와 언어에 따라 단어 가져오기
     _wordPool = WordData.getSpaceDefenseWords(
       settingsController.difficulty,
-      language: settingsController.language,
+      language: settingsController.typingLanguage,
     );
 
     if (_wordPool.isEmpty) {
@@ -158,6 +158,9 @@ class _SpaceDefenseScreenState extends State<SpaceDefenseScreen>
 
   // 게임 시작
   void _startGame() {
+    // 2024-07-15: 카운트다운 소리 재생 타이밍 문제 해결
+    // 먼저 상태 초기화하고 소리는 첫 화면 표시 후 재생
+
     // 상태 초기화
     setState(() {
       _isPlaying = true;
@@ -183,15 +186,17 @@ class _SpaceDefenseScreenState extends State<SpaceDefenseScreen>
     _inputController.clear();
     _inputFocusNode.requestFocus();
 
+    // 2024-07-15: 화면이 업데이트된 후 바로 소리 재생 (타이밍 개선)
+    // 2024-07-16: 화면 그리기 대기 없이 즉시 소리 재생
+    _audioService.playSound(SoundType.countdown);
+
     // 카운트다운 타이머 시작
     _countdownTimer?.cancel();
+
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         _countdownValue--;
       });
-
-      // 효과음 재생
-      _audioService.playSound(SoundType.countdown);
 
       if (_countdownValue <= 0) {
         timer.cancel();
@@ -199,16 +204,13 @@ class _SpaceDefenseScreenState extends State<SpaceDefenseScreen>
           _isCountingDown = false;
         });
 
-        // 게임 시작 효과음
-        _audioService.playSound(SoundType.gameStart);
-
         // 적 생성 타이머 시작
         _startSpawnTimer();
 
         // 난이도 증가 타이머 시작
         _startDifficultyTimer();
 
-        // 아이템 생성 타이머 시작 - 별도 함수 호출로 변경
+        // 아이템 생성 타이머 시작
         _startItemSpawnTimer();
       }
     });

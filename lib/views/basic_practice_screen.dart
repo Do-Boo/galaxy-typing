@@ -99,7 +99,7 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
     // 선택된 난이도와 언어에 따른 단어 목록 가져오기
     _wordList = WordData.getWordsByDifficulty(
       settingsController.difficulty,
-      language: settingsController.language,
+      language: settingsController.typingLanguage,
     );
 
     // 단어 목록을 무작위로 섞기
@@ -478,13 +478,6 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
 
                   // 타이핑 영역
                   _buildMobileTypingArea(context),
-
-                  // 버튼 영역
-                  if (!_isPlaying)
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 12),
-                      child: _buildMobileControlButtons(context),
-                    ),
                 ],
               ),
             ),
@@ -768,24 +761,6 @@ class _BasicPracticeScreenState extends State<BasicPracticeScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  // 모바일용 컨트롤 버튼 - 최소한의 버튼만 표시
-  Widget _buildMobileControlButtons(BuildContext context) {
-    const buttonSize = CosmicButtonSize.medium;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        CosmicButton(
-          label: '단어 새로고침',
-          icon: Icons.refresh,
-          type: CosmicButtonType.outline,
-          size: buttonSize,
-          onPressed: _loadWords,
-        ),
-      ],
     );
   }
 

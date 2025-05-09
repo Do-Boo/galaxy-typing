@@ -90,6 +90,9 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
 
   @override
   void dispose() {
+    // 2024-07-16: 화면 전환 시 카운트다운 소리 중지
+    _audioService.stopCountdown();
+
     // 타이머 취소
     _gameTimer?.cancel();
     _countdownTimer?.cancel();
@@ -112,7 +115,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
     // 선택된 난이도와 언어에 따른 단어 목록 가져오기
     _wordList = WordData.getWordsByDifficulty(
       settingsController.difficulty,
-      language: settingsController.language,
+      language: settingsController.typingLanguage,
     );
 
     // 단어 목록을 무작위로 섞기
@@ -127,20 +130,36 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
 
   // 카운트다운 시작
   void _startCountdown() {
+    // 2024-07-13: 카운트다운 소리 재생 로직 간소화
+    // 2024-07-16: 타이밍 문제 해결을 위해 상태 업데이트 전에 소리 재생
+    // 2024-07-16: 카운트다운 소리가 1초 지연되는 문제 수정
+    // 2024-07-17: 웹과 모바일 모두 동일한 방식으로 처리하도록 수정
+    // 2024-07-17: 카운트다운 소리와 숫자 변경 타이밍 동기화
+
+    // 타이머 취소 먼저 수행
+    _countdownTimer?.cancel();
+
+    // 상태 초기화
     setState(() {
       _isCountingDown = true;
       _countdownValue = 3;
     });
 
+    // 소리 먼저 재생 (소리가 화면에 숫자 표시되는 것보다 먼저 들림)
     _audioService.playSound(SoundType.countdown);
 
+    // 카운트다운 타이머 시작 (소리 재생 직후 시작)
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_countdownValue > 1) {
-        setState(() {
-          _countdownValue--;
-        });
-        _audioService.playSound(SoundType.countdown);
-      } else {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        _countdownValue--;
+      });
+
+      if (_countdownValue <= 0) {
         timer.cancel();
         setState(() {
           _isCountingDown = false;
@@ -171,9 +190,6 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
       _inputController.clear();
       _currentTypedText = '';
     });
-
-    // 게임 시작 효과음
-    _audioService.playSound(SoundType.gameStart);
 
     // 타이머 시작
     _startTimer();
@@ -470,26 +486,31 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
     final isTablet = ResponsiveHelper.isTablet(context);
     final isMobile = !isDesktop && !isTablet;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      // 키보드가 표시될 때 화면이 리사이징되도록 설정
-      // 모바일 웹에서는 리사이징을 비활성화하여 키보드 공백 문제 해결
-      resizeToAvoidBottomInset: !kIsWeb,
-      body: Stack(
-        children: [
-          // 배경
-          const SpaceBackground(),
+    final theme = Theme.of(context);
 
-          // 메인 콘텐츠
-          SafeArea(
-            child: ResponsiveHelper.centeredContent(
-              context: context,
-              child: isMobile
-                  ? _buildMobileLayout(context, formattedTime, accuracy)
-                  : _buildDesktopLayout(context, formattedTime, accuracy),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        // 키보드가 표시될 때 화면이 리사이징되도록 설정
+        // 모바일 웹에서는 리사이징을 비활성화하여 키보드 공백 문제 해결
+        resizeToAvoidBottomInset: !kIsWeb,
+        body: Stack(
+          children: [
+            // 배경
+            const SpaceBackground(),
+
+            // 메인 콘텐츠
+            SafeArea(
+              child: ResponsiveHelper.centeredContent(
+                context: context,
+                child: isMobile
+                    ? _buildMobileLayout(context, formattedTime, accuracy)
+                    : _buildDesktopLayout(context, formattedTime, accuracy),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1415,5 +1436,42 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
         ],
       ),
     );
+  }
+
+  // 뒤로가기 처리
+  Future<bool> _onWillPop() async {
+    // 2024-07-16: 화면 전환 시 카운트다운 소리 중지
+    _audioService.stopCountdown();
+
+    // 게임 중인 경우 확인 다이얼로그 표시
+    if (_isPlaying && !_isFinished) {
+      _gameTimer?.cancel(); // 타이머 일시 중지
+
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('게임 종료'),
+          content: const Text('정말 게임을 종료하시겠습니까?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('종료'),
+            ),
+          ],
+        ),
+      );
+
+      if (result != true) {
+        // 취소한 경우 타이머 재시작
+        _startTimer();
+        return false;
+      }
+    }
+
+    return true;
   }
 }
