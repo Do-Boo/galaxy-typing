@@ -1,8 +1,12 @@
 // 뒤로가기 버튼 위젯
 // 작성: 2024-05-01
+// 업데이트: 2024-06-16 (버튼 클릭 소리 추가)
 // 화면 상단에 배치되는 뒤로가기 버튼
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import '../services/audio_service.dart';
 import '../utils/app_theme.dart';
 
 class CosmicBackButton extends StatelessWidget {
@@ -11,15 +15,40 @@ class CosmicBackButton extends StatelessWidget {
   final EdgeInsets padding;
   final double iconSize;
   final bool useTransparentBackground;
+  final bool enableSound; // 소리 활성화 여부 (기본값: true)
 
   const CosmicBackButton({
-    Key? key,
+    super.key,
     this.onPressed,
     this.label,
     this.padding = const EdgeInsets.all(8.0),
     this.iconSize = 20.0,
     this.useTransparentBackground = true,
-  }) : super(key: key);
+    this.enableSound = true, // 기본적으로 소리 활성화
+  });
+
+  // 오디오 서비스 인스턴스
+  static final AudioService _audioService = AudioService();
+
+  // 버튼 클릭 핸들러 (소리 포함)
+  void _handleButtonPress(BuildContext context) {
+    // 소리 재생 (비동기로 실행하여 UI 블로킹 방지)
+    if (enableSound) {
+      _audioService.playSound(SoundType.buttonClick).catchError((error) {
+        // 소리 재생 실패 시 무시 (UI에는 영향 없음)
+        if (kDebugMode) {
+          print('뒤로가기 버튼 클릭 소리 재생 실패: $error');
+        }
+      });
+    }
+
+    // 원래 콜백 실행 또는 기본 뒤로가기 동작
+    if (onPressed != null) {
+      onPressed!();
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +60,10 @@ class CosmicBackButton extends StatelessWidget {
             : AppColors.backgroundLighter.withOpacity(0.7),
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
-          onTap: onPressed ?? () => Navigator.of(context).pop(),
+          onTap: () => _handleButtonPress(context),
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 8,
             ),
@@ -54,10 +83,10 @@ class CosmicBackButton extends StatelessWidget {
                   size: iconSize,
                 ),
                 if (label != null) ...[
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Text(
                     label!,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,

@@ -17,6 +17,7 @@ import '../widgets/cosmic_pulsing_text.dart';
 import '../widgets/space_background.dart';
 import 'basic_practice_screen.dart';
 import 'font_demo_screen.dart';
+import 'long_text_practice_screen.dart';
 import 'settings_screen.dart';
 import 'space_defense_screen.dart';
 import 'stats_screen.dart';
@@ -416,9 +417,20 @@ class _MainScreenState extends State<MainScreen> {
         icon: Icons.keyboard,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => BasicPracticeScreen()),
+          MaterialPageRoute(builder: (context) => const BasicPracticeScreen()),
         ),
         isHighlighted: true,
+      ),
+      _buildGameModeItem(
+        context: context,
+        title: '긴글 연습',
+        description: '문단 단위의 긴 텍스트로 실력 향상',
+        icon: Icons.article,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const LongTextPracticeScreen()),
+        ),
       ),
       _buildGameModeItem(
         context: context,
@@ -457,7 +469,7 @@ class _MainScreenState extends State<MainScreen> {
         icon: Icons.font_download,
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => FontDemoScreen()),
+          MaterialPageRoute(builder: (context) => const FontDemoScreen()),
         ),
       ),
     ];

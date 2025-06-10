@@ -1,8 +1,12 @@
 // 공통 버튼 위젯
 // 작성: 2024-05-01
+// 업데이트: 2024-06-16 (버튼 클릭 소리 추가)
 // 앱 전체에서 사용되는 공통 버튼 스타일 위젯
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import '../services/audio_service.dart';
 import '../utils/app_theme.dart';
 
 enum CosmicButtonType {
@@ -26,9 +30,10 @@ class CosmicButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isFullWidth;
   final bool isLoading;
+  final bool enableSound; // 소리 활성화 여부 (기본값: true)
 
   const CosmicButton({
-    Key? key,
+    super.key,
     required this.label,
     this.icon,
     this.type = CosmicButtonType.primary,
@@ -36,7 +41,27 @@ class CosmicButton extends StatelessWidget {
     this.onPressed,
     this.isFullWidth = false,
     this.isLoading = false,
-  }) : super(key: key);
+    this.enableSound = true, // 기본적으로 소리 활성화
+  });
+
+  // 오디오 서비스 인스턴스
+  static final AudioService _audioService = AudioService();
+
+  // 버튼 클릭 핸들러 (소리 포함)
+  void _handleButtonPress() {
+    // 소리 재생 (비동기로 실행하여 UI 블로킹 방지)
+    if (enableSound) {
+      _audioService.playSound(SoundType.buttonClick).catchError((error) {
+        // 소리 재생 실패 시 무시 (UI에는 영향 없음)
+        if (kDebugMode) {
+          print('버튼 클릭 소리 재생 실패: $error');
+        }
+      });
+    }
+
+    // 원래 콜백 실행
+    onPressed?.call();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +91,9 @@ class CosmicButton extends StatelessWidget {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          onPressed: isLoading ? null : onPressed,
+          onPressed: isLoading
+              ? null
+              : (onPressed != null ? _handleButtonPress : null),
           style: buttonStyle,
           child: Padding(
             padding: padding,
@@ -76,7 +103,8 @@ class CosmicButton extends StatelessWidget {
       );
     } else {
       return ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed:
+            isLoading ? null : (onPressed != null ? _handleButtonPress : null),
         style: buttonStyle,
         child: Padding(
           padding: padding,
@@ -113,7 +141,7 @@ class CosmicButton extends StatelessWidget {
             color: textColor,
             size: iconSize,
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
         ],
         Text(
           label,
@@ -171,17 +199,17 @@ class CosmicButton extends StatelessWidget {
   EdgeInsets _getPadding() {
     switch (size) {
       case CosmicButtonSize.small:
-        return EdgeInsets.symmetric(
+        return const EdgeInsets.symmetric(
           horizontal: 12,
           vertical: 6,
         );
       case CosmicButtonSize.medium:
-        return EdgeInsets.symmetric(
+        return const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 10,
         );
       case CosmicButtonSize.large:
-        return EdgeInsets.symmetric(
+        return const EdgeInsets.symmetric(
           horizontal: 24,
           vertical: 14,
         );
@@ -215,27 +243,27 @@ class CosmicButton extends StatelessWidget {
   // 버튼 스타일 계산
   ButtonStyle _getButtonStyle(Color bgColor, Color borderColor) {
     return ButtonStyle(
-      backgroundColor: MaterialStateProperty.resolveWith<Color>(
-        (Set<MaterialState> states) {
-          if (states.contains(MaterialState.disabled)) {
+      backgroundColor: WidgetStateProperty.resolveWith<Color>(
+        (Set<WidgetState> states) {
+          if (states.contains(WidgetState.disabled)) {
             return AppColors.backgroundLighter;
           }
-          if (states.contains(MaterialState.hovered) &&
+          if (states.contains(WidgetState.hovered) &&
               type != CosmicButtonType.text) {
             return bgColor.withOpacity(0.8);
           }
           return bgColor;
         },
       ),
-      foregroundColor: MaterialStateProperty.resolveWith<Color>(
-        (Set<MaterialState> states) {
-          if (states.contains(MaterialState.disabled)) {
+      foregroundColor: WidgetStateProperty.resolveWith<Color>(
+        (Set<WidgetState> states) {
+          if (states.contains(WidgetState.disabled)) {
             return AppColors.textSecondary;
           }
           return _getTextColor();
         },
       ),
-      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+      shape: WidgetStateProperty.all<RoundedRectangleBorder>(
         RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8.0),
           side: BorderSide(
@@ -244,9 +272,9 @@ class CosmicButton extends StatelessWidget {
           ),
         ),
       ),
-      overlayColor: MaterialStateProperty.resolveWith<Color>(
-        (Set<MaterialState> states) {
-          if (states.contains(MaterialState.pressed)) {
+      overlayColor: WidgetStateProperty.resolveWith<Color>(
+        (Set<WidgetState> states) {
+          if (states.contains(WidgetState.pressed)) {
             return type == CosmicButtonType.text
                 ? AppColors.backgroundLighter
                 : AppColors.primary.withOpacity(0.1);
@@ -254,16 +282,16 @@ class CosmicButton extends StatelessWidget {
           return Colors.transparent;
         },
       ),
-      elevation: MaterialStateProperty.resolveWith<double>(
-        (Set<MaterialState> states) {
+      elevation: WidgetStateProperty.resolveWith<double>(
+        (Set<WidgetState> states) {
           if (type == CosmicButtonType.text ||
               type == CosmicButtonType.outline) {
             return 0;
           }
-          if (states.contains(MaterialState.pressed)) {
+          if (states.contains(WidgetState.pressed)) {
             return 0;
           }
-          if (states.contains(MaterialState.hovered)) {
+          if (states.contains(WidgetState.hovered)) {
             return 2;
           }
           return 1;
