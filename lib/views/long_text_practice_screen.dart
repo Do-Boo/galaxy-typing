@@ -21,7 +21,14 @@ import '../widgets/page_header.dart';
 import '../widgets/space_background.dart';
 
 class LongTextPracticeScreen extends StatefulWidget {
-  const LongTextPracticeScreen({super.key});
+  final String? customText;
+  final String? customTitle;
+
+  const LongTextPracticeScreen({
+    super.key,
+    this.customText,
+    this.customTitle,
+  });
 
   @override
   _LongTextPracticeScreenState createState() => _LongTextPracticeScreenState();
@@ -103,7 +110,11 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
   @override
   void initState() {
     super.initState();
-    _selectRandomText();
+    if (widget.customText != null) {
+      _setCustomText(widget.customText!);
+    } else {
+      _selectRandomText();
+    }
     _inputController.addListener(_onInputChanged);
   }
 
@@ -114,6 +125,17 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     _inputFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  // 커스텀 텍스트 설정
+  void _setCustomText(String text) {
+    setState(() {
+      _currentText = text;
+      _sentences = _splitIntoSentences(_currentText);
+      _currentSentenceIndex = 0;
+      _currentSentence = _sentences.isNotEmpty ? _sentences[0] : '';
+      _resetGame();
+    });
   }
 
   // 랜덤 텍스트 선택
@@ -706,8 +728,10 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                 ),
                 Expanded(
                   child: PageHeader(
-                    title: 'LONG TEXT PRACTICE',
-                    subtitle: '문단 단위의 긴 텍스트로 타이핑 실력 향상',
+                    title: widget.customTitle ?? 'LONG TEXT PRACTICE',
+                    subtitle: widget.customTitle != null
+                        ? '공유 텍스트로 타이핑 연습'
+                        : '문단 단위의 긴 텍스트로 타이핑 실력 향상',
                     centerAlign: true,
                     titleFontSize: isDesktop ? 32 : (isTablet ? 28 : 24),
                   ),

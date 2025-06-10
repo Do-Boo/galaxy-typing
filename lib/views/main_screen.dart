@@ -434,6 +434,17 @@ class _MainScreenState extends State<MainScreen> {
       ),
       _buildGameModeItem(
         context: context,
+        title: '텍스트 라이브러리',
+        description: '사용자들이 공유한 다양한 텍스트 모음',
+        icon: Icons.library_books,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) => const SharedTextLibraryScreen()),
+        ),
+      ),
+      _buildGameModeItem(
+        context: context,
         title: '시간 도전',
         description: '제한 시간 내 최대한 많은 단어 입력',
         icon: Icons.timer,
