@@ -16,7 +16,7 @@ import 'controllers/stats_controller.dart';
 import 'models/game_settings.dart';
 import 'services/audio_service.dart';
 import 'utils/app_theme.dart';
-import 'views/main_screen.dart';
+import 'views/splash_screen.dart';
 
 // 앱 구성 요소의 전역 인스턴스
 // 앱 전체에서 일관된 인스턴스 사용을 위한 변수들
@@ -121,7 +121,7 @@ class CosmicTyperApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
 
-            home: const MainScreen(),
+            home: const SplashScreen(),
 
             // 접근성 및 글꼴 크기 설정
             builder: (context, child) {

@@ -19,6 +19,7 @@ import 'basic_practice_screen.dart';
 import 'font_demo_screen.dart';
 import 'long_text_practice_screen.dart';
 import 'settings_screen.dart';
+import 'shared_text_library_screen.dart';
 import 'space_defense_screen.dart';
 import 'stats_screen.dart';
 import 'time_challenge_screen.dart';

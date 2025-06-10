@@ -14,6 +14,7 @@ import '../widgets/cosmic_button.dart';
 import '../widgets/page_header.dart';
 import '../widgets/space_background.dart';
 import 'long_text_practice_screen.dart';
+import 'text_upload_screen.dart';
 
 class SharedTextLibraryScreen extends StatefulWidget {
   const SharedTextLibraryScreen({super.key});
