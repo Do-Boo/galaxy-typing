@@ -55,10 +55,16 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
   String _currentSentence = '';
   String _userInput = '';
   int _currentPosition = 0;
-  int _correctChars = 0;
-  int _totalChars = 0;
+
+  // 누적 통계 (전체 세션)
+  int _totalCorrectChars = 0; // 완성된 문장들의 정확한 문자 수
+  int _totalTypedChars = 0; // 완성된 문장들의 총 입력 문자 수
   int _errors = 0;
   int _completedSentences = 0;
+
+  // 현재 문장 통계
+  int _currentCorrectChars = 0; // 현재 문장에서 정확한 문자 수
+  int _currentTotalChars = 0; // 현재 문장에서 입력한 총 문자 수
 
   // 시간 관련
   DateTime? _startTime;
@@ -67,8 +73,14 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
   Duration _elapsedTime = Duration.zero;
 
   // 통계
-  double _wpm = 0.0;
+  double _cpm = 0.0;
   double _accuracy = 100.0;
+
+  // 최종 통계 저장 변수들 추가
+  double _finalCpm = 0.0;
+  double _finalAccuracy = 0.0;
+  Duration _finalElapsedTime = Duration.zero;
+  int _finalCompletedSentences = 0;
 
   // 긴글 텍스트 목록 (한국어/영어)
   final List<Map<String, String>> _koreanTexts = [
@@ -194,10 +206,17 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       _isCompleted = false;
       _userInput = '';
       _currentPosition = 0;
-      _correctChars = 0;
-      _totalChars = 0;
+
+      // 누적 통계 초기화
+      _totalCorrectChars = 0;
+      _totalTypedChars = 0;
       _errors = 0;
       _completedSentences = 0;
+
+      // 현재 문장 통계 초기화
+      _currentCorrectChars = 0;
+      _currentTotalChars = 0;
+
       _currentSentenceIndex = 0;
       if (_sentences.isNotEmpty) {
         _currentSentence = _sentences[0];
@@ -205,7 +224,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       _startTime = null;
       _endTime = null;
       _elapsedTime = Duration.zero;
-      _wpm = 0.0;
+      _cpm = 0.0;
       _accuracy = 100.0;
     });
 
@@ -229,7 +248,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       if (!_isPaused && _isPlaying) {
         setState(() {
           _elapsedTime = DateTime.now().difference(_startTime!);
-          _calculateWPM();
+          _calculateCPM();
         });
       }
     });
@@ -250,12 +269,19 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
 
   // 입력 변경 처리 (자동 시작 기능 포함)
   void _onInputChanged() {
+    // 게임 완료 상태에서는 입력 무시
+    if (_isCompleted) {
+      _inputController.clear();
+      return;
+    }
+
     // 첫 입력 감지 시 자동으로 게임 시작
     if (!_isPlaying && !_isPaused && _inputController.text.isNotEmpty) {
       _startGame();
       return;
     }
 
+    // 게임이 진행 중이 아니거나 일시정지 상태에서는 입력 무시
     if (!_isPlaying || _isPaused) return;
 
     final input = _inputController.text;
@@ -274,54 +300,285 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     _audioService.playSound(SoundType.keyPress);
   }
 
-  // 정확도 계산
-  void _calculateAccuracy() {
-    _totalChars = _userInput.length;
-    _correctChars = 0;
-    _errors = 0;
+  // 유니코드 안전 문자 길이 계산 (이모지 포함)
+  int _getActualCharLength(String text) {
+    if (text.isEmpty) return 0;
 
-    for (int i = 0; i < _userInput.length && i < _currentSentence.length; i++) {
-      if (_userInput[i] == _currentSentence[i]) {
-        _correctChars++;
+    int count = 0;
+    for (int i = 0; i < text.length;) {
+      final codeUnit = text.codeUnitAt(i);
+
+      // 서로게이트 페어 확인 (이모지 등)
+      if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF && i + 1 < text.length) {
+        final nextCodeUnit = text.codeUnitAt(i + 1);
+        if (nextCodeUnit >= 0xDC00 && nextCodeUnit <= 0xDFFF) {
+          // 서로게이트 페어 (2개 코드 유닛 = 1개 문자)
+          i += 2;
+          count += 1;
+        } else {
+          // 일반 문자
+          i += 1;
+          count += 1;
+        }
       } else {
-        _errors++;
+        // 일반 문자
+        i += 1;
+        count += 1;
       }
     }
 
-    _accuracy = _totalChars > 0 ? (_correctChars / _totalChars) * 100 : 100.0;
+    return count;
   }
 
-  // WPM 계산
-  void _calculateWPM() {
+  // 유니코드 안전 문자 비교 (이모지 포함)
+  Map<String, int> _compareKoreanText(String input, String target) {
+    double correctChars = 0.0;
+    int errors = 0;
+
+    // 실제 문자 단위로 비교 (이모지 고려)
+    final inputRunes = input.runes.toList();
+    final targetRunes = target.runes.toList();
+
+    final minLength = inputRunes.length < targetRunes.length
+        ? inputRunes.length
+        : targetRunes.length;
+
+    for (int i = 0; i < minLength; i++) {
+      final inputChar = String.fromCharCode(inputRunes[i]);
+      final targetChar = String.fromCharCode(targetRunes[i]);
+
+      if (inputChar == targetChar) {
+        // 완전히 일치하는 경우
+        correctChars += 1.0;
+      } else if (_isKoreanChar(inputChar) && _isKoreanChar(targetChar)) {
+        // 둘 다 한글인 경우 조합 상태 확인
+        if (_isPartialMatch(inputChar, targetChar)) {
+          // 조합 중인 상태 (부분 일치) - 부분 점수 부여
+          correctChars += 0.7; // 조합 중이므로 70% 점수
+        } else {
+          // 완전히 다른 한글
+          errors++;
+        }
+      } else {
+        // 한글이 아니거나 완전히 다른 문자 (이모지 포함)
+        errors++;
+      }
+    }
+
+    return {
+      'correct': correctChars.round(),
+      'errors': errors,
+    };
+  }
+
+  // 한글 조합을 고려한 텍스트 비교 함수
+  bool _isPartialMatch(String input, String target) {
+    if (!_isKoreanChar(input) || !_isKoreanChar(target)) return false;
+
+    final inputCode = input.codeUnitAt(0);
+    final targetCode = target.codeUnitAt(0);
+
+    // 둘 다 완성형 한글인 경우
+    if (inputCode >= 0xAC00 &&
+        inputCode <= 0xD7A3 &&
+        targetCode >= 0xAC00 &&
+        targetCode <= 0xD7A3) {
+      // 한글 분해
+      final inputDecomposed = _decomposeKorean(input);
+      final targetDecomposed = _decomposeKorean(target);
+
+      // 초성이 같은지 확인
+      if (inputDecomposed['initial'] == targetDecomposed['initial']) {
+        // 중성까지 같은지 확인
+        if (inputDecomposed['medial'] == targetDecomposed['medial']) {
+          // 종성이 다르거나 하나가 없는 경우 (조합 중)
+          return true;
+        }
+        // 중성이 다르지만 초성이 같은 경우 (조합 중)
+        return inputDecomposed['medial'] == null ||
+            targetDecomposed['medial'] == null;
+      }
+    }
+
+    // 하나는 자모, 하나는 완성형인 경우
+    if ((inputCode >= 0x3131 && inputCode <= 0x318E) ||
+        (targetCode >= 0x3131 && targetCode <= 0x318E)) {
+      // 조합 중인 상태로 간주
+      return true;
+    }
+
+    return false;
+  }
+
+  // 한글 문자인지 확인
+  bool _isKoreanChar(String char) {
+    if (char.isEmpty) return false;
+    final code = char.codeUnitAt(0);
+
+    // 한글 완성형 (가-힣)
+    if (code >= 0xAC00 && code <= 0xD7A3) return true;
+
+    // 한글 자모 (ㄱ-ㅎ, ㅏ-ㅣ)
+    if (code >= 0x3131 && code <= 0x318E) return true;
+
+    return false;
+  }
+
+  // 한글 분해 (초성, 중성, 종성)
+  Map<String, String?> _decomposeKorean(String char) {
+    if (char.isEmpty || !_isKoreanChar(char)) {
+      return {'initial': null, 'medial': null, 'final': null};
+    }
+
+    final code = char.codeUnitAt(0);
+
+    // 완성형 한글이 아닌 경우
+    if (code < 0xAC00 || code > 0xD7A3) {
+      return {'initial': char, 'medial': null, 'final': null};
+    }
+
+    // 한글 분해 공식
+    final base = code - 0xAC00;
+    final initialIndex = base ~/ (21 * 28);
+    final medialIndex = (base % (21 * 28)) ~/ 28;
+    final finalIndex = base % 28;
+
+    // 초성, 중성, 종성 테이블
+    const initials = [
+      'ㄱ',
+      'ㄲ',
+      'ㄴ',
+      'ㄷ',
+      'ㄸ',
+      'ㄹ',
+      'ㅁ',
+      'ㅂ',
+      'ㅃ',
+      'ㅅ',
+      'ㅆ',
+      'ㅇ',
+      'ㅈ',
+      'ㅉ',
+      'ㅊ',
+      'ㅋ',
+      'ㅌ',
+      'ㅍ',
+      'ㅎ'
+    ];
+    const medials = [
+      'ㅏ',
+      'ㅐ',
+      'ㅑ',
+      'ㅒ',
+      'ㅓ',
+      'ㅔ',
+      'ㅕ',
+      'ㅖ',
+      'ㅗ',
+      'ㅘ',
+      'ㅙ',
+      'ㅚ',
+      'ㅛ',
+      'ㅜ',
+      'ㅝ',
+      'ㅞ',
+      'ㅟ',
+      'ㅠ',
+      'ㅡ',
+      'ㅢ',
+      'ㅣ'
+    ];
+    const finals = [
+      '',
+      'ㄱ',
+      'ㄲ',
+      'ㄳ',
+      'ㄴ',
+      'ㄵ',
+      'ㄶ',
+      'ㄷ',
+      'ㄹ',
+      'ㄺ',
+      'ㄻ',
+      'ㄼ',
+      'ㄽ',
+      'ㄾ',
+      'ㄿ',
+      'ㅀ',
+      'ㅁ',
+      'ㅂ',
+      'ㅄ',
+      'ㅅ',
+      'ㅆ',
+      'ㅇ',
+      'ㅈ',
+      'ㅊ',
+      'ㅋ',
+      'ㅌ',
+      'ㅍ',
+      'ㅎ'
+    ];
+
+    return {
+      'initial': initialIndex < initials.length ? initials[initialIndex] : null,
+      'medial': medialIndex < medials.length ? medials[medialIndex] : null,
+      'final': finalIndex < finals.length && finals[finalIndex].isNotEmpty
+          ? finals[finalIndex]
+          : null,
+    };
+  }
+
+  // CPM 계산 (스무딩 적용)
+  void _calculateCPM() {
     if (_elapsedTime.inSeconds > 0) {
       final minutes = _elapsedTime.inSeconds / 60.0;
-      final words = _correctChars / 5.0; // 5글자 = 1단어
-      _wpm = words / minutes;
+      final totalCorrectChars = _totalCorrectChars + _currentCorrectChars;
+
+      // 기본 CPM 계산
+      final rawCpm = totalCorrectChars / minutes;
+
+      // 문장 완성 직후 급격한 변화 완화 (스무딩)
+      if (_cpm > 0) {
+        // 이전 CPM과 새 CPM의 가중 평균 (90% 새값, 10% 이전값)
+        _cpm = (rawCpm * 0.9) + (_cpm * 0.1);
+      } else {
+        _cpm = rawCpm;
+      }
     }
+  }
+
+  // 정확도 계산 (현재 문장 + 누적)
+  void _calculateAccuracy() {
+    // 현재 문장 분석 (실제 문자 길이 사용)
+    _currentTotalChars = _getActualCharLength(_userInput);
+
+    // 한글 조합을 고려한 스마트 비교
+    final result = _compareKoreanText(_userInput, _currentSentence);
+    _currentCorrectChars = result['correct'] ?? 0;
+
+    // 전체 정확도 계산 (완성된 문장 + 현재 문장)
+    final totalChars = _totalTypedChars + _currentTotalChars;
+    final totalCorrect = _totalCorrectChars + _currentCorrectChars;
+
+    _accuracy = totalChars > 0 ? (totalCorrect / totalChars) * 100 : 100.0;
   }
 
   // 문장 완성 처리
   void _completeSentence() {
     _audioService.playSound(SoundType.wordComplete);
 
-    setState(() {
-      _completedSentences++;
-      _currentSentenceIndex++;
-    });
+    // 완성된 문장의 실제 문자 수를 누적에 추가 (이모지 고려)
+    final actualSentenceLength = _getActualCharLength(_currentSentence);
+    _totalCorrectChars += actualSentenceLength;
+    _totalTypedChars += actualSentenceLength;
 
-    // 다음 문장이 있는지 확인
-    if (_currentSentenceIndex < _sentences.length) {
-      // 다음 문장으로 이동
-      setState(() {
-        _currentSentence = _sentences[_currentSentenceIndex];
-        _userInput = '';
-        _currentPosition = 0;
-      });
-      _inputController.clear();
+    // 다음 문장으로 이동 또는 게임 완료
+    _moveToNextSentence();
+
+    // 입력 필드 정리 및 포커스
+    _inputController.clear();
+    if (!_isCompleted) {
       _inputFocusNode.requestFocus();
-    } else {
-      // 모든 문장 완료
-      _completeGame();
     }
   }
 
@@ -342,7 +599,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
   // 최종 통계 계산
   void _calculateFinalStats() {
     _calculateAccuracy();
-    _calculateWPM();
+    _calculateCPM();
   }
 
   // 세션 저장
@@ -350,12 +607,80 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     final statsController =
         Provider.of<StatsController>(context, listen: false);
 
+    // 최종 통계로 저장
+    final finalTotalChars = _totalTypedChars + _currentTotalChars;
+    final finalCorrectChars = _totalCorrectChars + _currentCorrectChars;
+
     // 긴글 연습은 기본 연습 세션으로 저장
     statsController.saveBasicPracticeSession(
-      chars: _totalChars,
-      correctChars: _correctChars,
+      chars: finalTotalChars,
+      correctChars: finalCorrectChars,
       timeSpent: _elapsedTime.inMinutes,
     );
+  }
+
+  // 새 게임 시작 (최종 결과 유지)
+  void _startNewGame() {
+    // 새 텍스트 선택
+    _selectRandomText();
+
+    // 게임 상태만 초기화 (최종 통계는 유지)
+    setState(() {
+      _isPlaying = false;
+      _isPaused = false;
+      _isCompleted = false;
+      _userInput = '';
+      _currentPosition = 0;
+
+      // 새 게임을 위한 통계 초기화
+      _totalCorrectChars = 0;
+      _totalTypedChars = 0;
+      _errors = 0;
+      _completedSentences = 0;
+      _currentCorrectChars = 0;
+      _currentTotalChars = 0;
+
+      _currentSentenceIndex = 0;
+      if (_sentences.isNotEmpty) {
+        _currentSentence = _sentences[0];
+      }
+      _startTime = null;
+      _endTime = null;
+      _elapsedTime = Duration.zero;
+      _cpm = 0.0;
+      _accuracy = 100.0;
+    });
+
+    _inputController.clear();
+    _timer?.cancel();
+    _inputFocusNode.requestFocus();
+  }
+
+  // 다음 문장으로 이동
+  void _moveToNextSentence() {
+    setState(() {
+      _completedSentences++;
+      _currentSentenceIndex++;
+      _userInput = '';
+      _currentPosition = 0;
+      _currentCorrectChars = 0;
+      _currentTotalChars = 0;
+
+      if (_currentSentenceIndex >= _sentences.length) {
+        // 모든 문장 완료 - 최종 통계 저장
+        _finalCpm = _cpm;
+        _finalAccuracy = _accuracy;
+        _finalElapsedTime = _elapsedTime;
+        _finalCompletedSentences = _completedSentences;
+      } else {
+        _currentSentence = _sentences[_currentSentenceIndex];
+      }
+    });
+
+    // 게임 완료 체크
+    if (_currentSentenceIndex >= _sentences.length) {
+      _completeGame();
+    }
   }
 
   @override
@@ -464,7 +789,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                 child: TextField(
                   controller: _inputController,
                   focusNode: _inputFocusNode,
-                  enabled: !_isPaused,
+                  enabled: !_isPaused && !_isCompleted,
                   maxLines: 3,
                   style: TextStyle(
                     fontSize: isTablet ? 20 : 18,
@@ -472,11 +797,13 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                   ),
                   textAlign: TextAlign.left,
                   decoration: InputDecoration(
-                    hintText: _isPlaying && !_isPaused
-                        ? '위의 현재 문장을 정확히 입력하세요...'
-                        : _isPaused
-                            ? '일시 정지됨'
-                            : '입력을 시작하면 자동으로 게임이 시작됩니다',
+                    hintText: _isCompleted
+                        ? '게임 완료! 다시 시작하려면 "다시 시작" 버튼을 클릭하세요'
+                        : _isPlaying && !_isPaused
+                            ? '위의 현재 문장을 정확히 입력하세요...'
+                            : _isPaused
+                                ? '일시 정지됨'
+                                : '입력을 시작하면 자동으로 게임이 시작됩니다',
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.07),
                     border: OutlineInputBorder(
@@ -610,7 +937,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
 
           // 간단한 통계들
           _buildMiniStatItem(
-              Icons.speed, _isPlaying ? _wpm.toStringAsFixed(1) : '0.0', 'WPM'),
+              Icons.speed, _isPlaying ? _cpm.toStringAsFixed(1) : '0.0', 'CPM'),
           _buildMiniStatItem(Icons.check_circle_outline,
               _isPlaying ? '${_accuracy.toStringAsFixed(1)}%' : '100%', '정확도'),
           _buildMiniStatItem(
@@ -751,24 +1078,38 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                 children: [
                   _buildStatBox(
                       '시간',
-                      _isPlaying ? _formatDuration(_elapsedTime) : '00:00',
+                      _isCompleted
+                          ? _formatDuration(_finalElapsedTime)
+                          : _isPlaying
+                              ? _formatDuration(_elapsedTime)
+                              : '00:00',
                       Icons.timer),
                   const SizedBox(width: 12),
                   _buildStatBox(
-                      'WPM',
-                      _isPlaying ? _wpm.toStringAsFixed(1) : '0.0',
+                      'CPM',
+                      _isCompleted
+                          ? _finalCpm.toStringAsFixed(1)
+                          : _isPlaying
+                              ? _cpm.toStringAsFixed(1)
+                              : '0.0',
                       Icons.speed),
                   const SizedBox(width: 12),
                   _buildStatBox(
                       '정확도',
-                      _isPlaying ? '${_accuracy.toStringAsFixed(1)}%' : '100%',
+                      _isCompleted
+                          ? '${_finalAccuracy.toStringAsFixed(1)}%'
+                          : _isPlaying
+                              ? '${_accuracy.toStringAsFixed(1)}%'
+                              : '100%',
                       Icons.check_circle_outline),
                   const SizedBox(width: 12),
                   _buildStatBox(
                       '문장',
-                      _isPlaying
-                          ? '${_completedSentences + 1}/${_sentences.length}'
-                          : '1/${_sentences.length}',
+                      _isCompleted
+                          ? '$_finalCompletedSentences/${_sentences.length}'
+                          : _isPlaying
+                              ? '${_completedSentences + 1}/${_sentences.length}'
+                              : '1/${_sentences.length}',
                       Icons.text_fields),
                 ],
               ),
@@ -859,7 +1200,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                           child: TextField(
                             controller: _inputController,
                             focusNode: _inputFocusNode,
-                            enabled: !_isPaused,
+                            enabled: !_isPaused && !_isCompleted,
                             maxLines: 3,
                             style: TextStyle(
                               fontSize: isDesktop ? 18 : 16,
@@ -867,11 +1208,13 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                             ),
                             textAlign: TextAlign.left,
                             decoration: InputDecoration(
-                              hintText: _isPlaying && !_isPaused
-                                  ? '위의 현재 문장을 정확히 입력하세요...'
-                                  : _isPaused
-                                      ? '일시 정지됨'
-                                      : '입력을 시작하면 자동으로 게임이 시작됩니다',
+                              hintText: _isCompleted
+                                  ? '게임 완료! 다시 시작하려면 "다시 시작" 버튼을 클릭하세요'
+                                  : _isPlaying && !_isPaused
+                                      ? '위의 현재 문장을 정확히 입력하세요...'
+                                      : _isPaused
+                                          ? '일시 정지됨'
+                                          : '입력을 시작하면 자동으로 게임이 시작됩니다',
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.07),
                               border: OutlineInputBorder(
@@ -950,10 +1293,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                       size: isDesktop
                           ? CosmicButtonSize.large
                           : CosmicButtonSize.medium,
-                      onPressed: () {
-                        _resetGame();
-                        _inputFocusNode.requestFocus();
-                      },
+                      onPressed: _startNewGame,
                     ),
                 ],
               ),
@@ -1005,10 +1345,55 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     );
   }
 
-  // 텍스트 스팬 생성 (현재 문장과 다음 문장만 표시)
+  // 텍스트 스팬 생성 (게임 완료 시 간단한 메시지만 표시)
   List<TextSpan> _buildTextSpans() {
     List<TextSpan> spans = [];
 
+    // 게임 완료 시 간단한 완료 메시지만 표시
+    if (_isCompleted) {
+      spans.add(const TextSpan(
+        text: '🎉 게임 완료! 🎉\n\n',
+        style: TextStyle(
+          color: AppColors.success,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          height: 1.5,
+        ),
+      ));
+
+      spans.add(const TextSpan(
+        text: '모든 문장을 성공적으로 완성했습니다!\n',
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 18,
+          height: 1.4,
+        ),
+      ));
+
+      spans.add(const TextSpan(
+        text: '최종 결과는 위의 통계 박스에서 확인하세요.\n\n',
+        style: TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 16,
+          height: 1.4,
+        ),
+      ));
+
+      spans.add(const TextSpan(
+        text: '새로운 도전을 위해 "다시 시작" 버튼을 클릭하세요! 🚀',
+        style: TextStyle(
+          color: AppColors.secondary,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          fontStyle: FontStyle.italic,
+          height: 1.3,
+        ),
+      ));
+
+      return spans;
+    }
+
+    // 게임 진행 중일 때는 기존 로직 사용
     // 현재 문장 (강조 표시)
     if (_currentSentenceIndex < _sentences.length) {
       // 현재 문장 라벨
@@ -1067,8 +1452,8 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
           height: 1.3,
         ),
       ));
-    } else {
-      // 마지막 문장인 경우
+    } else if (!_isCompleted) {
+      // 마지막 문장인 경우 (게임 진행 중)
       spans.add(const TextSpan(
         text: '마지막 문장입니다! 🎉',
         style: TextStyle(
