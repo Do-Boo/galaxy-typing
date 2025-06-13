@@ -91,13 +91,9 @@ class AudioService {
 
   // 오디오 플레이어
   final AudioPlayer _musicPlayer = AudioPlayer();
-  final Map<SoundType, AudioPlayer> _soundPlayers = {};
 
-  // 효과음이 이미 성공적으로 로드되었는지 추적
-  final Map<SoundType, bool> _soundLoaded = {};
-
-  // 각 효과음 유형별 실제 경로 (대체 파일 사용 시 추적용)
-  final Map<SoundType, String> _actualSoundPaths = {};
+  // 효과음용 단일 플레이어 (모바일 호환성 개선)
+  final AudioPlayer _soundPlayer = AudioPlayer();
 
   // 오류 로그 기록
   final Map<SoundType, List<String>> _errorLogs = {};
@@ -173,9 +169,7 @@ class AudioService {
 
     try {
       // 모든 효과음 플레이어의 볼륨 조절
-      for (final player in _soundPlayers.values) {
-        await player.setVolume(volume);
-      }
+      await _soundPlayer.setVolume(volume);
       if (kDebugMode) {
         print('효과음 볼륨이 설정되었습니다: $volume');
       }
@@ -203,9 +197,7 @@ class AudioService {
 
       // 효과음 플레이어 초기화
       for (final soundType in SoundType.values) {
-        _soundPlayers[soundType] = AudioPlayer();
-        _soundLoaded[soundType] = false; // 모든 소리를 처음에는 로드되지 않은 상태로 설정
-        _actualSoundPaths[soundType] = ''; // 실제 로드된 파일 경로를 빈 문자열로 초기화
+        _errorLogs[soundType] = [];
       }
 
       // 현재 설정값 기반으로 볼륨 초기화
@@ -228,142 +220,19 @@ class AudioService {
         }
       }
 
-      // 중요 효과음 미리 로드
-      await _preloadImportantSounds();
-
-      _initialized = true;
-
+      // 중요한 효과음들을 미리 로드 (게임 플레이 중 지연 시간 최소화)
+      // 더 이상 사전 로드하지 않음 - 단일 플레이어로 즉시 재생
       if (kDebugMode) {
-        print('오디오 서비스가 초기화되었습니다.');
+        print('오디오 서비스 초기화 완료 (단일 효과음 플레이어 모드)');
       }
     } catch (e) {
       if (kDebugMode) {
-        print('오디오 서비스 초기화 오류: $e');
+        print('오디오 초기화 중 오류: $e');
       }
     } finally {
-      // 초기화 중 플래그 해제
+      // 초기화 완료 플래그 설정
       _initializing = false;
-    }
-  }
-
-  // 중요한 효과음 미리 로드
-  Future<void> _preloadImportantSounds() async {
-    try {
-      // 자주 사용되는 중요 효과음 미리 로드
-      final importantSounds = [
-        SoundType.buttonClick, // 가장 안정적인 오디오 파일 먼저 로드
-        SoundType.keyPress, // 두 번째로 안정적인 오디오 파일
-        SoundType.countdown, // 카운트다운 효과음도 미리 로드
-        SoundType.tick, // 틱 효과음 미리 로드
-        SoundType.gameOver, // 게임 종료 효과음 미리 로드
-      ];
-
-      for (final sound in importantSounds) {
-        await _preloadSound(sound);
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('중요 효과음 미리 로드 중 오류: $e');
-      }
-    }
-  }
-
-  // 개별 효과음 미리 로드 (코드 중복 제거를 위한 도우미 메서드)
-  Future<void> _preloadSound(SoundType soundType) async {
-    final player = _soundPlayers[soundType];
-    if (player == null) return;
-
-    String assetPath = _getSoundAssetPath(soundType);
-    if (assetPath.isEmpty) return;
-
-    try {
-      if (kDebugMode) {
-        print('효과음 로드 시도: $assetPath (유형: $soundType)');
-      }
-
-      // 로드 시도
-      await player.setAsset(assetPath);
-      await player.load(); // 미리 로드하여 첫 재생 지연 시간 제거
-
-      // 파일 정보 확인
-      final duration = player.duration;
-      final loadTime = DateTime.now();
-
-      _soundLoaded[soundType] = true; // 로드 성공 표시
-      _actualSoundPaths[soundType] = assetPath; // 실제 로드된 파일 경로 저장
-
-      if (kDebugMode) {
-        print(
-            '효과음 로드 성공: $assetPath (길이: ${duration?.inMilliseconds ?? "알 수 없음"}ms, 로드 시간: $loadTime)');
-      }
-    } catch (e) {
-      _soundLoaded[soundType] = false; // 로드 실패 표시
-
-      // 상세한 오류 메시지 기록
-      final errorMessage = '효과음 로드 실패: $assetPath (유형: $soundType) - $e';
-      _errorLogs[soundType]?.add(errorMessage);
-
-      if (kDebugMode) {
-        print(errorMessage);
-        print(
-            '환경: ${kIsWeb ? "웹" : "네이티브"}, 플랫폼: ${defaultTargetPlatform.toString()}');
-        print('플레이어 상태: ${player.playerState.toString()}');
-
-        // 파일 형식 문제인지 추가 분석
-        if (e.toString().contains('format')) {
-          print('> 파일 형식 문제 감지됨');
-        }
-        if (e.toString().contains('decode')) {
-          print('> 디코딩 문제 감지됨');
-        }
-        if (e.toString().contains('unsupported')) {
-          print('> 지원되지 않는 형식 감지됨');
-        }
-        if (soundType == SoundType.countdown) {
-          print('> 카운트다운 효과음 로드 실패! 폴백 메커니즘 없이 에러 전파');
-        }
-      }
-    }
-  }
-
-  // 각 효과음 유형에 대한 에셋 경로 반환
-  String _getSoundAssetPath(SoundType soundType) {
-    switch (soundType) {
-      case SoundType.buttonClick:
-        return 'assets/sounds/button_click.mp3';
-      case SoundType.keyPress:
-        return 'assets/sounds/key_press.mp3';
-      case SoundType.wordComplete:
-        return 'assets/sounds/word_complete.mp3';
-      case SoundType.error:
-        return 'assets/sounds/error.mp3';
-      case SoundType.countdown:
-        return 'assets/sounds/countdown.mp3';
-      case SoundType.gameOver:
-        return 'assets/sounds/game_over.mp3';
-      case SoundType.pause:
-        return 'assets/sounds/pause.mp3';
-      case SoundType.tick:
-        return 'assets/sounds/tick.mp3';
-      case SoundType.enemyDestroyed:
-        return 'assets/sounds/enemy_destroyed.mp3';
-      case SoundType.playerHit:
-        return 'assets/sounds/player_hit.mp3';
-      case SoundType.waveUp:
-        return 'assets/sounds/wave_up.mp3';
-      case SoundType.itemPickup:
-        return 'assets/sounds/item_pickup.mp3';
-      case SoundType.itemExpire:
-        return 'assets/sounds/item_expire.mp3';
-      case SoundType.itemUse:
-        return 'assets/sounds/item_use.mp3';
-      case SoundType.shieldActive:
-        return 'assets/sounds/shield_active.mp3';
-      case SoundType.gameStart:
-        // gameStart는 countdown 사운드를 재사용
-        return 'assets/sounds/countdown.mp3';
-      default:
-        return '';
+      _initialized = true;
     }
   }
 
@@ -474,80 +343,50 @@ class AudioService {
         }
       }
 
-      // 효과음 플레이어 가져오기
-      final player = _soundPlayers[soundType];
-      if (player == null) {
-        if (kDebugMode) {
-          print('효과음 플레이어를 찾을 수 없음: $soundType');
-        }
-        throw Exception('효과음 플레이어를 찾을 수 없음: $soundType');
-      }
-
       if (kDebugMode) {
         print('효과음 재생 요청: $soundType');
       }
 
-      // 효과음이 로드되지 않았으면 로드 시도
-      if (_soundLoaded[soundType] != true) {
-        await _preloadSound(soundType);
+      // 효과음 에셋 경로 가져오기
+      String assetPath = _getSoundAssetPath(soundType);
+      if (assetPath.isEmpty) {
+        if (kDebugMode) {
+          print('효과음 에셋 경로를 찾을 수 없음: $soundType');
+        }
+        return;
       }
 
-      // 효과음이 로드되었는지 다시 확인
-      if (_soundLoaded[soundType] == true) {
-        try {
-          // 음량 설정
-          await player.setVolume(volume);
+      try {
+        // 음량 설정
+        await _soundPlayer.setVolume(volume);
 
-          // 처음부터 재생
-          await player.seek(Duration.zero);
+        // 에셋 로드 및 재생
+        await _soundPlayer.setAsset(assetPath);
+        await _soundPlayer.seek(Duration.zero);
+        await _soundPlayer.play();
 
-          // 재생 시작
-          await player.play();
-
-          if (kDebugMode) {
-            final path = _actualSoundPaths[soundType];
-            print('효과음 재생 성공: $soundType (파일: ${path ?? "알 수 없음"})');
-          }
-        } catch (e) {
-          // 상세한 오류 메시지 기록
-          final errorMessage = '효과음 재생 오류: $soundType - $e';
-          _errorLogs[soundType]?.add(errorMessage);
-
-          if (kDebugMode) {
-            print(errorMessage);
-            print(
-                '환경: ${kIsWeb ? "웹" : "네이티브"}, 플랫폼: ${defaultTargetPlatform.toString()}');
-            print('플레이어 상태: ${player.playerState.toString()}');
-          }
-
-          // 오류 전파
-          throw Exception(errorMessage);
+        if (kDebugMode) {
+          print('효과음 재생 성공: $soundType (파일: $assetPath)');
         }
-      } else {
-        final errorMessage = '효과음이 로드되지 않아 재생할 수 없음: $soundType';
+      } catch (e) {
+        // 상세한 오류 메시지 기록
+        final errorMessage = '효과음 재생 오류: $soundType - $e';
+        _errorLogs[soundType]?.add(errorMessage);
+
         if (kDebugMode) {
           print(errorMessage);
+          print(
+              '환경: ${kIsWeb ? "웹" : "네이티브"}, 플랫폼: ${defaultTargetPlatform.toString()}');
+          print('플레이어 상태: ${_soundPlayer.playerState.toString()}');
         }
 
-        // 이전 로드 오류 내역 표시
-        final previousErrors = _errorLogs[soundType] ?? [];
-        if (previousErrors.isNotEmpty && kDebugMode) {
-          print('이전 로드 오류 내역:');
-          for (final error in previousErrors) {
-            print('- $error');
-          }
-        }
-
-        // 오류 전파
-        throw Exception(errorMessage);
+        // 오류 전파하지 않음 (효과음 실패가 앱 동작을 방해하지 않도록)
       }
     } catch (e) {
       if (kDebugMode) {
         print('효과음 재생 중 예외 발생: $e');
       }
-
-      // 효과음 재생 실패 오류를 상위로 전파
-      rethrow;
+      // 효과음 재생 실패는 앱 동작을 방해하지 않도록 오류를 전파하지 않음
     }
   }
 
@@ -602,9 +441,7 @@ class AudioService {
     if (!enabled) {
       // 음향이 비활성화되면 모든 소리를 중지합니다.
       _musicPlayer.stop();
-      for (final player in _soundPlayers.values) {
-        player.stop();
-      }
+      _soundPlayer.stop();
     }
   }
 
@@ -629,20 +466,15 @@ class AudioService {
   Future<void> dispose() async {
     if (!_audioEnabled) return; // 오디오 비활성화 상태면 실행 안함
     await _musicPlayer.dispose();
-    for (final player in _soundPlayers.values) {
-      await player.dispose();
-    }
-    _soundPlayers.clear();
+    await _soundPlayer.dispose();
   }
 
   // 카운트다운 효과음 중지
   void stopCountdown() {
     try {
-      if (_soundPlayers.containsKey(SoundType.countdown)) {
-        _soundPlayers[SoundType.countdown]!.stop();
-        if (kDebugMode) {
-          print('카운트다운 효과음 중지됨');
-        }
+      _soundPlayer.stop();
+      if (kDebugMode) {
+        print('카운트다운 효과음 중지됨');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -654,11 +486,9 @@ class AudioService {
   // 특정 효과음 중지
   void stopSound(SoundType soundType) {
     try {
-      if (_soundPlayers.containsKey(soundType)) {
-        _soundPlayers[soundType]!.stop();
-        if (kDebugMode) {
-          print('효과음 중지됨: $soundType');
-        }
+      _soundPlayer.stop();
+      if (kDebugMode) {
+        print('효과음 중지됨: $soundType');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -670,9 +500,8 @@ class AudioService {
   // 모든 효과음 중지
   void stopAllSounds() {
     try {
-      for (final player in _soundPlayers.values) {
-        player.stop();
-      }
+      _musicPlayer.stop();
+      _soundPlayer.stop();
       if (kDebugMode) {
         print('모든 효과음 중지됨');
       }
@@ -680,6 +509,47 @@ class AudioService {
       if (kDebugMode) {
         print('모든 효과음 중지 중 오류 발생: $e');
       }
+    }
+  }
+
+  // 각 효과음 유형에 대한 에셋 경로 반환
+  String _getSoundAssetPath(SoundType soundType) {
+    switch (soundType) {
+      case SoundType.buttonClick:
+        return 'assets/sounds/button_click.mp3';
+      case SoundType.keyPress:
+        return 'assets/sounds/key_press.mp3';
+      case SoundType.wordComplete:
+        return 'assets/sounds/word_complete.mp3';
+      case SoundType.error:
+        return 'assets/sounds/error.mp3';
+      case SoundType.countdown:
+        return 'assets/sounds/countdown.mp3';
+      case SoundType.gameOver:
+        return 'assets/sounds/game_over.mp3';
+      case SoundType.pause:
+        return 'assets/sounds/pause.mp3';
+      case SoundType.tick:
+        return 'assets/sounds/tick.mp3';
+      case SoundType.enemyDestroyed:
+        return 'assets/sounds/enemy_destroyed.mp3';
+      case SoundType.playerHit:
+        return 'assets/sounds/player_hit.mp3';
+      case SoundType.waveUp:
+        return 'assets/sounds/wave_up.mp3';
+      case SoundType.itemPickup:
+        return 'assets/sounds/item_pickup.mp3';
+      case SoundType.itemExpire:
+        return 'assets/sounds/item_expire.mp3';
+      case SoundType.itemUse:
+        return 'assets/sounds/item_use.mp3';
+      case SoundType.shieldActive:
+        return 'assets/sounds/shield_active.mp3';
+      case SoundType.gameStart:
+        // gameStart는 countdown 사운드를 재사용
+        return 'assets/sounds/countdown.mp3';
+      default:
+        return '';
     }
   }
 }

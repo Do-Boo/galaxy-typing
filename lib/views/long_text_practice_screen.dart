@@ -330,7 +330,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     return count;
   }
 
-  // 유니코드 안전 문자 비교 (이모지 포함)
+  // 유니코드 안전 문자 비교 (이모지 포함) - 한글 조합 개선
   Map<String, int> _compareKoreanText(String input, String target) {
     double correctChars = 0.0;
     int errors = 0;
@@ -352,11 +352,11 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
         correctChars += 1.0;
       } else if (_isKoreanChar(inputChar) && _isKoreanChar(targetChar)) {
         // 둘 다 한글인 경우 조합 상태 확인
-        if (_isPartialMatch(inputChar, targetChar)) {
-          // 조합 중인 상태 (부분 일치) - 부분 점수 부여
-          correctChars += 0.7; // 조합 중이므로 70% 점수
-        } else {
-          // 완전히 다른 한글
+        final matchScore = _getKoreanMatchScore(inputChar, targetChar);
+        correctChars += matchScore;
+
+        // 완전히 틀린 경우만 오타로 카운트
+        if (matchScore < 0.3) {
           errors++;
         }
       } else {
@@ -371,9 +371,9 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     };
   }
 
-  // 한글 조합을 고려한 텍스트 비교 함수
-  bool _isPartialMatch(String input, String target) {
-    if (!_isKoreanChar(input) || !_isKoreanChar(target)) return false;
+  // 한글 문자 간 유사도 점수 계산 (0.0 ~ 1.0)
+  double _getKoreanMatchScore(String input, String target) {
+    if (!_isKoreanChar(input) || !_isKoreanChar(target)) return 0.0;
 
     final inputCode = input.codeUnitAt(0);
     final targetCode = target.codeUnitAt(0);
@@ -383,31 +383,50 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
         inputCode <= 0xD7A3 &&
         targetCode >= 0xAC00 &&
         targetCode <= 0xD7A3) {
-      // 한글 분해
       final inputDecomposed = _decomposeKorean(input);
       final targetDecomposed = _decomposeKorean(target);
 
-      // 초성이 같은지 확인
+      double score = 0.0;
+
+      // 초성 비교 (40% 가중치)
       if (inputDecomposed['initial'] == targetDecomposed['initial']) {
-        // 중성까지 같은지 확인
-        if (inputDecomposed['medial'] == targetDecomposed['medial']) {
-          // 종성이 다르거나 하나가 없는 경우 (조합 중)
-          return true;
-        }
-        // 중성이 다르지만 초성이 같은 경우 (조합 중)
-        return inputDecomposed['medial'] == null ||
-            targetDecomposed['medial'] == null;
+        score += 0.4;
       }
+
+      // 중성 비교 (40% 가중치)
+      if (inputDecomposed['medial'] == targetDecomposed['medial']) {
+        score += 0.4;
+      }
+
+      // 종성 비교 (20% 가중치)
+      if (inputDecomposed['final'] == targetDecomposed['final']) {
+        score += 0.2;
+      }
+
+      // 조합 중인 상태 보너스
+      if (score >= 0.4) {
+        // 초성이나 중성이 맞으면
+        score = max(score, 0.8); // 최소 80% 점수 보장
+      }
+
+      return score;
     }
 
-    // 하나는 자모, 하나는 완성형인 경우
+    // 하나는 자모, 하나는 완성형인 경우 (조합 중)
     if ((inputCode >= 0x3131 && inputCode <= 0x318E) ||
         (targetCode >= 0x3131 && targetCode <= 0x318E)) {
-      // 조합 중인 상태로 간주
-      return true;
+      return 0.9; // 조합 중이므로 90% 점수
     }
 
-    return false;
+    // 둘 다 자모인 경우
+    if (inputCode >= 0x3131 &&
+        inputCode <= 0x318E &&
+        targetCode >= 0x3131 &&
+        targetCode <= 0x318E) {
+      return input == target ? 1.0 : 0.1;
+    }
+
+    return 0.0;
   }
 
   // 한글 문자인지 확인
@@ -528,39 +547,73 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     };
   }
 
-  // CPM 계산 (스무딩 적용)
+  // CPM 계산 (스무딩 적용) - 한글 조합 개선
   void _calculateCPM() {
     if (_elapsedTime.inSeconds > 0) {
       final minutes = _elapsedTime.inSeconds / 60.0;
-      final totalCorrectChars = _totalCorrectChars + _currentCorrectChars;
+
+      // 현재 진행률 기반 예상 완성 문자 수 계산
+      final currentProgress =
+          _currentTotalChars / max(1, _getActualCharLength(_currentSentence));
+      final estimatedCurrentChars = (_getActualCharLength(_currentSentence) *
+              min(currentProgress * 1.2, 1.0))
+          .round();
+
+      // 보정된 총 문자 수 (완성된 문장 + 예상 현재 문장)
+      final adjustedTotalChars = _totalCorrectChars + estimatedCurrentChars;
 
       // 기본 CPM 계산
-      final rawCpm = totalCorrectChars / minutes;
+      final rawCpm = adjustedTotalChars / minutes;
 
-      // 문장 완성 직후 급격한 변화 완화 (스무딩)
+      // 더 부드러운 스무딩 적용 (한글 조합 변화 완화)
       if (_cpm > 0) {
-        // 이전 CPM과 새 CPM의 가중 평균 (90% 새값, 10% 이전값)
-        _cpm = (rawCpm * 0.9) + (_cpm * 0.1);
+        // 변화량에 따른 적응적 스무딩
+        final changeRatio = (rawCpm - _cpm).abs() / max(_cpm, 1.0);
+        final smoothingFactor =
+            changeRatio > 0.3 ? 0.7 : 0.85; // 급격한 변화 시 더 강한 스무딩
+
+        _cpm = (rawCpm * (1.0 - smoothingFactor)) + (_cpm * smoothingFactor);
       } else {
         _cpm = rawCpm;
       }
+
+      // 비현실적인 값 제한 (최대 1000 CPM)
+      _cpm = min(_cpm, 1000.0);
     }
   }
 
-  // 정확도 계산 (현재 문장 + 누적)
+  // 정확도 계산 (현재 문장 + 누적) - 한글 조합 개선
   void _calculateAccuracy() {
-    // 현재 문장 분석 (실제 문자 길이 사용)
-    _currentTotalChars = _getActualCharLength(_userInput);
+    // 현재 입력 길이가 목표 문장보다 긴 경우 제한
+    final maxInputLength = _currentSentence.length;
+    final limitedInput = _userInput.length > maxInputLength
+        ? _userInput.substring(0, maxInputLength)
+        : _userInput;
+
+    // 현재 문장 분석 (제한된 입력 사용)
+    _currentTotalChars = _getActualCharLength(limitedInput);
 
     // 한글 조합을 고려한 스마트 비교
-    final result = _compareKoreanText(_userInput, _currentSentence);
+    final result = _compareKoreanText(limitedInput, _currentSentence);
     _currentCorrectChars = result['correct'] ?? 0;
+
+    // 진행률 기반 보정 (타이핑 진행도에 따른 가중치)
+    final progress =
+        _currentTotalChars / max(1, _getActualCharLength(_currentSentence));
+    final progressBonus = min(progress * 0.1, 0.1); // 최대 10% 보너스
+
+    // 조정된 정확한 문자 수 (진행률 보너스 적용)
+    final adjustedCurrentCorrect =
+        (_currentCorrectChars * (1.0 + progressBonus)).round();
 
     // 전체 정확도 계산 (완성된 문장 + 현재 문장)
     final totalChars = _totalTypedChars + _currentTotalChars;
-    final totalCorrect = _totalCorrectChars + _currentCorrectChars;
+    final totalCorrect = _totalCorrectChars + adjustedCurrentCorrect;
 
     _accuracy = totalChars > 0 ? (totalCorrect / totalChars) * 100 : 100.0;
+
+    // 정확도가 100%를 초과하지 않도록 제한
+    _accuracy = min(_accuracy, 100.0);
   }
 
   // 문장 완성 처리
