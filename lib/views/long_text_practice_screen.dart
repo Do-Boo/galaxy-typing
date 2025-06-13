@@ -330,10 +330,11 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     return count;
   }
 
-  // 유니코드 안전 문자 비교 (이모지 포함) - 한글 조합 개선
+  // 유니코드 안전 문자 비교 (이모지 포함) - 조합 중 오타 평가 제외
   Map<String, int> _compareKoreanText(String input, String target) {
     double correctChars = 0.0;
     int errors = 0;
+    int evaluatedChars = 0; // 실제 평가된 문자 수
 
     // 실제 문자 단위로 비교 (이모지 고려)
     final inputRunes = input.runes.toList();
@@ -350,35 +351,45 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       if (inputChar == targetChar) {
         // 완전히 일치하는 경우
         correctChars += 1.0;
+        evaluatedChars++;
       } else if (_isKoreanChar(inputChar) && _isKoreanChar(targetChar)) {
         // 둘 다 한글인 경우 조합 상태 확인
-        final matchScore = _getKoreanMatchScore(inputChar, targetChar);
-        correctChars += matchScore;
-
-        // 완전히 틀린 경우만 오타로 카운트
-        if (matchScore < 0.3) {
+        if (_isInComposition(inputChar, targetChar)) {
+          // 조합 중인 상태 - 평가하지 않음 (오타도 정답도 아님)
+          continue;
+        } else {
+          // 조합이 완료된 상태에서 다른 문자 - 오타로 처리
           errors++;
+          evaluatedChars++;
         }
       } else {
-        // 한글이 아니거나 완전히 다른 문자 (이모지 포함)
+        // 한글이 아니거나 완전히 다른 문자 (이모지 포함) - 오타로 처리
         errors++;
+        evaluatedChars++;
       }
     }
 
     return {
       'correct': correctChars.round(),
       'errors': errors,
+      'evaluated': evaluatedChars, // 실제 평가된 문자 수 추가
     };
   }
 
-  // 한글 문자 간 유사도 점수 계산 (0.0 ~ 1.0)
-  double _getKoreanMatchScore(String input, String target) {
-    if (!_isKoreanChar(input) || !_isKoreanChar(target)) return 0.0;
+  // 한글 조합 중인 상태인지 확인
+  bool _isInComposition(String input, String target) {
+    if (!_isKoreanChar(input) || !_isKoreanChar(target)) return false;
 
     final inputCode = input.codeUnitAt(0);
     final targetCode = target.codeUnitAt(0);
 
-    // 둘 다 완성형 한글인 경우
+    // 하나는 자모, 하나는 완성형인 경우 (조합 중)
+    if ((inputCode >= 0x3131 && inputCode <= 0x318E) ||
+        (targetCode >= 0x3131 && targetCode <= 0x318E)) {
+      return true;
+    }
+
+    // 둘 다 완성형 한글인 경우 조합 관계 확인
     if (inputCode >= 0xAC00 &&
         inputCode <= 0xD7A3 &&
         targetCode >= 0xAC00 &&
@@ -386,47 +397,21 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       final inputDecomposed = _decomposeKorean(input);
       final targetDecomposed = _decomposeKorean(target);
 
-      double score = 0.0;
-
-      // 초성 비교 (40% 가중치)
+      // 초성이 같고 중성이 다르거나 없는 경우 (조합 중)
       if (inputDecomposed['initial'] == targetDecomposed['initial']) {
-        score += 0.4;
+        // 중성이 다르거나 하나가 없는 경우
+        if (inputDecomposed['medial'] != targetDecomposed['medial']) {
+          return true;
+        }
+        // 중성이 같고 종성이 다르거나 하나가 없는 경우
+        if (inputDecomposed['medial'] == targetDecomposed['medial'] &&
+            inputDecomposed['final'] != targetDecomposed['final']) {
+          return true;
+        }
       }
-
-      // 중성 비교 (40% 가중치)
-      if (inputDecomposed['medial'] == targetDecomposed['medial']) {
-        score += 0.4;
-      }
-
-      // 종성 비교 (20% 가중치)
-      if (inputDecomposed['final'] == targetDecomposed['final']) {
-        score += 0.2;
-      }
-
-      // 조합 중인 상태 보너스
-      if (score >= 0.4) {
-        // 초성이나 중성이 맞으면
-        score = max(score, 0.8); // 최소 80% 점수 보장
-      }
-
-      return score;
     }
 
-    // 하나는 자모, 하나는 완성형인 경우 (조합 중)
-    if ((inputCode >= 0x3131 && inputCode <= 0x318E) ||
-        (targetCode >= 0x3131 && targetCode <= 0x318E)) {
-      return 0.9; // 조합 중이므로 90% 점수
-    }
-
-    // 둘 다 자모인 경우
-    if (inputCode >= 0x3131 &&
-        inputCode <= 0x318E &&
-        targetCode >= 0x3131 &&
-        targetCode <= 0x318E) {
-      return input == target ? 1.0 : 0.1;
-    }
-
-    return 0.0;
+    return false;
   }
 
   // 한글 문자인지 확인
@@ -547,30 +532,22 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     };
   }
 
-  // CPM 계산 (스무딩 적용) - 한글 조합 개선
+  // CPM 계산 (스무딩 적용) - 조합 중 문자 제외
   void _calculateCPM() {
     if (_elapsedTime.inSeconds > 0) {
       final minutes = _elapsedTime.inSeconds / 60.0;
 
-      // 현재 진행률 기반 예상 완성 문자 수 계산
-      final currentProgress =
-          _currentTotalChars / max(1, _getActualCharLength(_currentSentence));
-      final estimatedCurrentChars = (_getActualCharLength(_currentSentence) *
-              min(currentProgress * 1.2, 1.0))
-          .round();
+      // 실제 완성된 문자 수 + 현재 평가 가능한 문자 수
+      final totalEvaluatedChars = _totalCorrectChars + _currentCorrectChars;
 
-      // 보정된 총 문자 수 (완성된 문장 + 예상 현재 문장)
-      final adjustedTotalChars = _totalCorrectChars + estimatedCurrentChars;
+      // 기본 CPM 계산 (조합 중인 문자 제외)
+      final rawCpm = totalEvaluatedChars / minutes;
 
-      // 기본 CPM 계산
-      final rawCpm = adjustedTotalChars / minutes;
-
-      // 더 부드러운 스무딩 적용 (한글 조합 변화 완화)
+      // 부드러운 스무딩 적용
       if (_cpm > 0) {
         // 변화량에 따른 적응적 스무딩
         final changeRatio = (rawCpm - _cpm).abs() / max(_cpm, 1.0);
-        final smoothingFactor =
-            changeRatio > 0.3 ? 0.7 : 0.85; // 급격한 변화 시 더 강한 스무딩
+        final smoothingFactor = changeRatio > 0.2 ? 0.8 : 0.9; // 조합 제외로 더 안정적
 
         _cpm = (rawCpm * (1.0 - smoothingFactor)) + (_cpm * smoothingFactor);
       } else {
@@ -582,7 +559,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     }
   }
 
-  // 정확도 계산 (현재 문장 + 누적) - 한글 조합 개선
+  // 정확도 계산 (현재 문장 + 누적) - 조합 중 문자 평가 제외
   void _calculateAccuracy() {
     // 현재 입력 길이가 목표 문장보다 긴 경우 제한
     final maxInputLength = _currentSentence.length;
@@ -590,25 +567,17 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
         ? _userInput.substring(0, maxInputLength)
         : _userInput;
 
-    // 현재 문장 분석 (제한된 입력 사용)
-    _currentTotalChars = _getActualCharLength(limitedInput);
-
-    // 한글 조합을 고려한 스마트 비교
+    // 한글 조합을 고려한 스마트 비교 (조합 중 문자 제외)
     final result = _compareKoreanText(limitedInput, _currentSentence);
     _currentCorrectChars = result['correct'] ?? 0;
+    final currentEvaluatedChars = result['evaluated'] ?? 0; // 실제 평가된 문자 수
 
-    // 진행률 기반 보정 (타이핑 진행도에 따른 가중치)
-    final progress =
-        _currentTotalChars / max(1, _getActualCharLength(_currentSentence));
-    final progressBonus = min(progress * 0.1, 0.1); // 최대 10% 보너스
+    // 현재 문장에서 실제 평가된 문자 수 사용
+    _currentTotalChars = currentEvaluatedChars;
 
-    // 조정된 정확한 문자 수 (진행률 보너스 적용)
-    final adjustedCurrentCorrect =
-        (_currentCorrectChars * (1.0 + progressBonus)).round();
-
-    // 전체 정확도 계산 (완성된 문장 + 현재 문장)
+    // 전체 정확도 계산 (완성된 문장 + 현재 평가된 문장)
     final totalChars = _totalTypedChars + _currentTotalChars;
-    final totalCorrect = _totalCorrectChars + adjustedCurrentCorrect;
+    final totalCorrect = _totalCorrectChars + _currentCorrectChars;
 
     _accuracy = totalChars > 0 ? (totalCorrect / totalChars) * 100 : 100.0;
 
