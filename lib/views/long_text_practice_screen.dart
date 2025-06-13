@@ -56,15 +56,15 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
   String _userInput = '';
   int _currentPosition = 0;
 
-  // 누적 통계 (전체 세션)
-  int _totalCorrectChars = 0; // 완성된 문장들의 정확한 문자 수
-  int _totalTypedChars = 0; // 완성된 문장들의 총 입력 문자 수
+  // 누적 통계 (전체 세션) - 자소 단위로 변경
+  int _totalCorrectJasos = 0; // 완성된 문장들의 정확한 자소 수
+  int _totalTypedJasos = 0; // 완성된 문장들의 총 입력 자소 수
   int _errors = 0;
   int _completedSentences = 0;
 
-  // 현재 문장 통계
-  int _currentCorrectChars = 0; // 현재 문장에서 정확한 문자 수
-  int _currentTotalChars = 0; // 현재 문장에서 입력한 총 문자 수
+  // 현재 문장 통계 - 자소 단위로 변경
+  int _currentCorrectJasos = 0; // 현재 문장에서 정확한 자소 수
+  int _currentTotalJasos = 0; // 현재 문장에서 입력한 총 자소 수
 
   // 시간 관련
   DateTime? _startTime;
@@ -208,14 +208,14 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       _currentPosition = 0;
 
       // 누적 통계 초기화
-      _totalCorrectChars = 0;
-      _totalTypedChars = 0;
+      _totalCorrectJasos = 0;
+      _totalTypedJasos = 0;
       _errors = 0;
       _completedSentences = 0;
 
       // 현재 문장 통계 초기화
-      _currentCorrectChars = 0;
-      _currentTotalChars = 0;
+      _currentCorrectJasos = 0;
+      _currentTotalJasos = 0;
 
       _currentSentenceIndex = 0;
       if (_sentences.isNotEmpty) {
@@ -532,34 +532,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     };
   }
 
-  // CPM 계산 (스무딩 적용) - 조합 중 문자 제외
-  void _calculateCPM() {
-    if (_elapsedTime.inSeconds > 0) {
-      final minutes = _elapsedTime.inSeconds / 60.0;
-
-      // 실제 완성된 문자 수 + 현재 평가 가능한 문자 수
-      final totalEvaluatedChars = _totalCorrectChars + _currentCorrectChars;
-
-      // 기본 CPM 계산 (조합 중인 문자 제외)
-      final rawCpm = totalEvaluatedChars / minutes;
-
-      // 부드러운 스무딩 적용
-      if (_cpm > 0) {
-        // 변화량에 따른 적응적 스무딩
-        final changeRatio = (rawCpm - _cpm).abs() / max(_cpm, 1.0);
-        final smoothingFactor = changeRatio > 0.2 ? 0.8 : 0.9; // 조합 제외로 더 안정적
-
-        _cpm = (rawCpm * (1.0 - smoothingFactor)) + (_cpm * smoothingFactor);
-      } else {
-        _cpm = rawCpm;
-      }
-
-      // 비현실적인 값 제한 (최대 1000 CPM)
-      _cpm = min(_cpm, 1000.0);
-    }
-  }
-
-  // 정확도 계산 (현재 문장 + 누적) - 조합 중 문자 평가 제외
+  // 정확도 계산 (자소 단위) - 한글: 자소 단위, 영어: 글자 단위
   void _calculateAccuracy() {
     // 현재 입력 길이가 목표 문장보다 긴 경우 제한
     final maxInputLength = _currentSentence.length;
@@ -567,32 +540,56 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
         ? _userInput.substring(0, maxInputLength)
         : _userInput;
 
-    // 한글 조합을 고려한 스마트 비교 (조합 중 문자 제외)
-    final result = _compareKoreanText(limitedInput, _currentSentence);
-    _currentCorrectChars = result['correct'] ?? 0;
-    final currentEvaluatedChars = result['evaluated'] ?? 0; // 실제 평가된 문자 수
+    // 자소 단위로 비교 (한글: 자소, 영어: 글자)
+    final result = _compareTextByJaso(limitedInput, _currentSentence);
+    _currentCorrectJasos = result['correctJasos'] ?? 0;
+    _currentTotalJasos = result['totalInputJasos'] ?? 0;
 
-    // 현재 문장에서 실제 평가된 문자 수 사용
-    _currentTotalChars = currentEvaluatedChars;
+    // 전체 정확도 계산 (완성된 문장 + 현재 문장)
+    final totalJasos = _totalTypedJasos + _currentTotalJasos;
+    final totalCorrectJasos = _totalCorrectJasos + _currentCorrectJasos;
 
-    // 전체 정확도 계산 (완성된 문장 + 현재 평가된 문장)
-    final totalChars = _totalTypedChars + _currentTotalChars;
-    final totalCorrect = _totalCorrectChars + _currentCorrectChars;
-
-    _accuracy = totalChars > 0 ? (totalCorrect / totalChars) * 100 : 100.0;
+    _accuracy = totalJasos > 0 ? (totalCorrectJasos / totalJasos) * 100 : 100.0;
 
     // 정확도가 100%를 초과하지 않도록 제한
     _accuracy = min(_accuracy, 100.0);
   }
 
-  // 문장 완성 처리
+  // 타수 계산 (자소 단위) - 분당 자소 수 (JPS: Jaso Per Second)
+  void _calculateCPM() {
+    if (_elapsedTime.inSeconds > 0) {
+      final minutes = _elapsedTime.inSeconds / 60.0;
+
+      // 실제 완성된 자소 수 + 현재 정확한 자소 수
+      final totalCorrectJasos = _totalCorrectJasos + _currentCorrectJasos;
+
+      // 기본 타수 계산 (정타수)
+      final rawCpm = totalCorrectJasos / minutes;
+
+      // 부드러운 스무딩 적용
+      if (_cpm > 0) {
+        // 변화량에 따른 적응적 스무딩
+        final changeRatio = (rawCpm - _cpm).abs() / max(_cpm, 1.0);
+        final smoothingFactor = changeRatio > 0.2 ? 0.8 : 0.9;
+
+        _cpm = (rawCpm * (1.0 - smoothingFactor)) + (_cpm * smoothingFactor);
+      } else {
+        _cpm = rawCpm;
+      }
+
+      // 비현실적인 값 제한 (최대 1000 타/분)
+      _cpm = min(_cpm, 1000.0);
+    }
+  }
+
+  // 문장 완성 처리 - 자소 단위로 수정
   void _completeSentence() {
     _audioService.playSound(SoundType.wordComplete);
 
-    // 완성된 문장의 실제 문자 수를 누적에 추가 (이모지 고려)
-    final actualSentenceLength = _getActualCharLength(_currentSentence);
-    _totalCorrectChars += actualSentenceLength;
-    _totalTypedChars += actualSentenceLength;
+    // 완성된 문장의 자소 수를 누적에 추가
+    final sentenceJasoCount = _getJasoCount(_currentSentence);
+    _totalCorrectJasos += sentenceJasoCount;
+    _totalTypedJasos += sentenceJasoCount;
 
     // 다음 문장으로 이동 또는 게임 완료
     _moveToNextSentence();
@@ -624,19 +621,19 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     _calculateCPM();
   }
 
-  // 세션 저장
+  // 세션 저장 - 자소 단위로 수정
   void _saveSession() {
     final statsController =
         Provider.of<StatsController>(context, listen: false);
 
-    // 최종 통계로 저장
-    final finalTotalChars = _totalTypedChars + _currentTotalChars;
-    final finalCorrectChars = _totalCorrectChars + _currentCorrectChars;
+    // 최종 통계로 저장 (자소 단위)
+    final finalTotalJasos = _totalTypedJasos + _currentTotalJasos;
+    final finalCorrectJasos = _totalCorrectJasos + _currentCorrectJasos;
 
     // 긴글 연습은 기본 연습 세션으로 저장
     statsController.saveBasicPracticeSession(
-      chars: finalTotalChars,
-      correctChars: finalCorrectChars,
+      chars: finalTotalJasos, // 자소 단위로 저장
+      correctChars: finalCorrectJasos, // 정확한 자소 수
       timeSpent: _elapsedTime.inMinutes,
     );
   }
@@ -655,12 +652,12 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       _currentPosition = 0;
 
       // 새 게임을 위한 통계 초기화
-      _totalCorrectChars = 0;
-      _totalTypedChars = 0;
+      _totalCorrectJasos = 0;
+      _totalTypedJasos = 0;
       _errors = 0;
       _completedSentences = 0;
-      _currentCorrectChars = 0;
-      _currentTotalChars = 0;
+      _currentCorrectJasos = 0;
+      _currentTotalJasos = 0;
 
       _currentSentenceIndex = 0;
       if (_sentences.isNotEmpty) {
@@ -685,8 +682,8 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       _currentSentenceIndex++;
       _userInput = '';
       _currentPosition = 0;
-      _currentCorrectChars = 0;
-      _currentTotalChars = 0;
+      _currentCorrectJasos = 0;
+      _currentTotalJasos = 0;
 
       if (_currentSentenceIndex >= _sentences.length) {
         // 모든 문장 완료 - 최종 통계 저장
@@ -1108,7 +1105,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                       Icons.timer),
                   const SizedBox(width: 12),
                   _buildStatBox(
-                      'CPM',
+                      '타수',
                       _isCompleted
                           ? _finalCpm.toStringAsFixed(1)
                           : _isPlaying
@@ -1544,5 +1541,131 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
         ],
       ),
     );
+  }
+
+  // 자소 단위 타수 계산을 위한 함수들 추가
+
+  // 텍스트의 총 자소 수 계산 (한글: 자소 단위, 영어: 글자 단위)
+  int _getJasoCount(String text) {
+    if (text.isEmpty) return 0;
+
+    int totalJasoCount = 0;
+    final runes = text.runes.toList();
+
+    for (int i = 0; i < runes.length; i++) {
+      final char = String.fromCharCode(runes[i]);
+
+      if (_isKoreanChar(char)) {
+        // 한글인 경우 자소 단위로 계산
+        totalJasoCount += _getKoreanJasoCount(char);
+      } else {
+        // 영어 및 기타 문자는 글자 단위로 계산
+        totalJasoCount += 1;
+      }
+    }
+
+    return totalJasoCount;
+  }
+
+  // 한글 문자의 자소 수 계산 (초성 + 중성 + 종성)
+  int _getKoreanJasoCount(String char) {
+    if (char.isEmpty || !_isKoreanChar(char)) return 1;
+
+    final code = char.codeUnitAt(0);
+
+    // 자모인 경우 1개
+    if (code >= 0x3131 && code <= 0x318E) return 1;
+
+    // 완성형 한글인 경우 분해하여 계산
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      final decomposed = _decomposeKorean(char);
+      int jasoCount = 0;
+
+      if (decomposed['initial'] != null) jasoCount++; // 초성
+      if (decomposed['medial'] != null) jasoCount++; // 중성
+      if (decomposed['final'] != null && decomposed['final']!.isNotEmpty)
+        jasoCount++; // 종성
+
+      return jasoCount;
+    }
+
+    return 1; // 기타 경우
+  }
+
+  // 자소 단위 텍스트 비교 (한글: 자소 비교, 영어: 글자 비교)
+  Map<String, int> _compareTextByJaso(String input, String target) {
+    int correctJasos = 0;
+    int totalInputJasos = 0;
+    int errors = 0;
+
+    // 입력과 목표 텍스트를 자소 단위로 분해
+    final inputJasos = _decomposeTextToJasos(input);
+    final targetJasos = _decomposeTextToJasos(target);
+
+    totalInputJasos = inputJasos.length;
+    final minLength = inputJasos.length < targetJasos.length
+        ? inputJasos.length
+        : targetJasos.length;
+
+    // 자소 단위로 비교
+    for (int i = 0; i < minLength; i++) {
+      if (inputJasos[i] == targetJasos[i]) {
+        correctJasos++;
+      } else {
+        errors++;
+      }
+    }
+
+    return {
+      'correctJasos': correctJasos,
+      'totalInputJasos': totalInputJasos,
+      'errors': errors,
+    };
+  }
+
+  // 텍스트를 자소 단위로 분해
+  List<String> _decomposeTextToJasos(String text) {
+    List<String> jasos = [];
+    final runes = text.runes.toList();
+
+    for (int i = 0; i < runes.length; i++) {
+      final char = String.fromCharCode(runes[i]);
+
+      if (_isKoreanChar(char)) {
+        // 한글인 경우 자소로 분해
+        jasos.addAll(_decomposeKoreanToJasos(char));
+      } else {
+        // 영어 및 기타 문자는 그대로 추가
+        jasos.add(char);
+      }
+    }
+
+    return jasos;
+  }
+
+  // 한글 문자를 자소 리스트로 분해
+  List<String> _decomposeKoreanToJasos(String char) {
+    if (char.isEmpty || !_isKoreanChar(char)) return [char];
+
+    final code = char.codeUnitAt(0);
+
+    // 자모인 경우 그대로 반환
+    if (code >= 0x3131 && code <= 0x318E) return [char];
+
+    // 완성형 한글인 경우 분해
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      final decomposed = _decomposeKorean(char);
+      List<String> jasos = [];
+
+      if (decomposed['initial'] != null) jasos.add(decomposed['initial']!);
+      if (decomposed['medial'] != null) jasos.add(decomposed['medial']!);
+      if (decomposed['final'] != null && decomposed['final']!.isNotEmpty) {
+        jasos.add(decomposed['final']!);
+      }
+
+      return jasos;
+    }
+
+    return [char];
   }
 }
