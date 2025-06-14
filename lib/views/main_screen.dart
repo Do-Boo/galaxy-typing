@@ -431,7 +431,6 @@ class _MainScreenState extends State<MainScreen> {
           context,
           MaterialPageRoute(builder: (context) => const BasicPracticeScreen()),
         ),
-        isHighlighted: true,
       ),
       _buildGameModeItem(
         context: context,
@@ -527,7 +526,6 @@ class _MainScreenState extends State<MainScreen> {
     required String description,
     required IconData icon,
     required VoidCallback onTap,
-    bool isHighlighted = false,
   }) {
     final isDesktop = ResponsiveHelper.isDesktop(context);
     final isTablet = ResponsiveHelper.isTablet(context);
@@ -536,28 +534,23 @@ class _MainScreenState extends State<MainScreen> {
     if (isTablet || isDesktop) {
       return HoverEffectWrapper(
         hoverScale: 1.05,
-        hoverColor: isHighlighted ? AppColors.primary : AppColors.secondary,
+        hoverColor: AppColors.secondary,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Container(
             decoration: BoxDecoration(
-              color: isHighlighted
-                  ? AppColors.primary.withOpacity(0.1)
-                  : AppColors.backgroundLighter.withOpacity(0.7),
+              color: AppColors.backgroundLighter.withOpacity(0.7),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color:
-                    isHighlighted ? AppColors.primary : AppColors.borderColor,
+                color: AppColors.borderColor,
                 width: 1,
               ),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
-                  color: isHighlighted
-                      ? AppColors.primary.withOpacity(0.2)
-                      : Colors.black12,
+                  color: Colors.black12,
                   blurRadius: 8,
-                  offset: const Offset(0, 4),
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
@@ -570,9 +563,7 @@ class _MainScreenState extends State<MainScreen> {
                   Icon(
                     icon,
                     size: isDesktop ? 48 : 36,
-                    color: isHighlighted
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
+                    color: AppColors.textSecondary,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -580,9 +571,7 @@ class _MainScreenState extends State<MainScreen> {
                     style: TextStyle(
                       fontSize: isDesktop ? 20 : 18,
                       fontWeight: FontWeight.w600,
-                      color: isHighlighted
-                          ? AppColors.primary
-                          : AppColors.textPrimary,
+                      color: AppColors.textPrimary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -611,12 +600,10 @@ class _MainScreenState extends State<MainScreen> {
       return Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: isHighlighted
-              ? AppColors.primary.withOpacity(0.1)
-              : AppColors.backgroundLighter.withOpacity(0.7),
+          color: AppColors.backgroundLighter.withOpacity(0.7),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isHighlighted ? AppColors.primary : AppColors.borderColor,
+            color: AppColors.borderColor,
             width: 1,
           ),
         ),
@@ -634,18 +621,14 @@ class _MainScreenState extends State<MainScreen> {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: isHighlighted
-                          ? AppColors.primary.withOpacity(0.1)
-                          : Colors.black12,
+                      color: Colors.black12,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
                       icon,
                       size: 28,
-                      color: isHighlighted
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
+                      color: AppColors.textSecondary,
                     ),
                   ),
 
@@ -658,12 +641,10 @@ class _MainScreenState extends State<MainScreen> {
                       children: [
                         Text(
                           title,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: isHighlighted
-                                ? AppColors.primary
-                                : AppColors.textPrimary,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -681,11 +662,9 @@ class _MainScreenState extends State<MainScreen> {
                   ),
 
                   // 화살표 아이콘
-                  Icon(
+                  const Icon(
                     Icons.chevron_right,
-                    color: isHighlighted
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
+                    color: AppColors.textSecondary,
                   ),
                 ],
               ),

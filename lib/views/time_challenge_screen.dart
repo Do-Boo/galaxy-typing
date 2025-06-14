@@ -317,24 +317,28 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
     }
   }
 
-  // 단어 완료 확인
+  // 단어 완료 확인 (자소 단위 계산 적용)
   void _checkWordCompletion(String typedWord) {
-    // 총 문자 수 업데이트
-    _totalChars += typedWord.length + 1; // +1은 스페이스바
+    // 자소 단위 비교 결과 가져오기
+    final comparisonResult = _compareTextByJaso(typedWord, _currentWord);
+    final inputJasoCount = comparisonResult['totalInputJasos']!;
+    final correctJasoCount = comparisonResult['correctJasos']!;
 
-    // 정확한 문자 수 업데이트
+    // 스페이스바 자소 수 (1개)
+    const spaceJasoCount = 1;
+
+    // 총 자소 수 업데이트 (입력한 단어 + 스페이스바)
+    _totalChars += inputJasoCount + spaceJasoCount;
+
+    // 정확한 자소 수 업데이트
     if (typedWord == _currentWord) {
-      _correctChars += typedWord.length + 1;
+      // 완전히 일치하는 경우: 목표 단어의 자소 수 + 스페이스바
+      final targetJasoCount = _getJasoCount(_currentWord);
+      _correctChars += targetJasoCount + spaceJasoCount;
       _audioService.playSound(SoundType.wordComplete);
     } else {
-      // 일치하는 문자 수 계산
-      int matchingChars = 0;
-      for (int i = 0; i < typedWord.length && i < _currentWord.length; i++) {
-        if (typedWord[i] == _currentWord[i]) {
-          matchingChars++;
-        }
-      }
-      _correctChars += matchingChars + 1;
+      // 부분적으로 일치하는 경우: 일치하는 자소 수 + 스페이스바
+      _correctChars += correctJasoCount + spaceJasoCount;
       _audioService.playSound(SoundType.error);
     }
 
@@ -412,8 +416,8 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
 
             // 결과 통계
             _buildResultStat('총 단어 수', '$_totalWords 단어'),
-            _buildResultStat('총 입력 문자 수', '$_totalChars 자'),
-            _buildResultStat('정확하게 입력한 문자 수', '$_correctChars 자'),
+            _buildResultStat('총 입력 자소 수', '$_totalChars 자소'),
+            _buildResultStat('정확하게 입력한 자소 수', '$_correctChars 자소'),
             _buildResultStat('정확도', '$accuracy%'),
             _buildResultStat('평균 CPM', '$_currentCpm'),
             _buildResultStat('최고 CPM', '$_maxCpm'),
@@ -1476,5 +1480,243 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
     }
 
     return true;
+  }
+
+  // 자소 단위 타수 계산을 위한 함수들 추가
+
+  // 텍스트의 총 자소 수 계산 (한글: 자소 단위, 영어: 글자 단위)
+  int _getJasoCount(String text) {
+    if (text.isEmpty) return 0;
+
+    int totalJasoCount = 0;
+    final runes = text.runes.toList();
+
+    for (int i = 0; i < runes.length; i++) {
+      final char = String.fromCharCode(runes[i]);
+
+      if (_isKoreanChar(char)) {
+        // 한글인 경우 자소 단위로 계산
+        totalJasoCount += _getKoreanJasoCount(char);
+      } else {
+        // 영어 및 기타 문자는 글자 단위로 계산
+        totalJasoCount += 1;
+      }
+    }
+
+    return totalJasoCount;
+  }
+
+  // 한글 문자의 자소 수 계산 (초성 + 중성 + 종성)
+  int _getKoreanJasoCount(String char) {
+    if (char.isEmpty || !_isKoreanChar(char)) return 1;
+
+    final code = char.codeUnitAt(0);
+
+    // 자모인 경우 1개
+    if (code >= 0x3131 && code <= 0x318E) return 1;
+
+    // 완성형 한글인 경우 분해하여 계산
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      final decomposed = _decomposeKorean(char);
+      int jasoCount = 0;
+
+      if (decomposed['initial'] != null) jasoCount++; // 초성
+      if (decomposed['medial'] != null) jasoCount++; // 중성
+      if (decomposed['final'] != null && decomposed['final']!.isNotEmpty)
+        jasoCount++; // 종성
+
+      return jasoCount;
+    }
+
+    return 1; // 기타 경우
+  }
+
+  // 한글 문자인지 확인
+  bool _isKoreanChar(String char) {
+    if (char.isEmpty) return false;
+    final code = char.codeUnitAt(0);
+
+    // 한글 완성형 (가-힣)
+    if (code >= 0xAC00 && code <= 0xD7A3) return true;
+
+    // 한글 자모 (ㄱ-ㅎ, ㅏ-ㅣ)
+    if (code >= 0x3131 && code <= 0x318E) return true;
+
+    return false;
+  }
+
+  // 한글 분해 (초성, 중성, 종성)
+  Map<String, String?> _decomposeKorean(String char) {
+    if (char.isEmpty || !_isKoreanChar(char)) {
+      return {'initial': null, 'medial': null, 'final': null};
+    }
+
+    final code = char.codeUnitAt(0);
+
+    // 완성형 한글이 아닌 경우
+    if (code < 0xAC00 || code > 0xD7A3) {
+      return {'initial': char, 'medial': null, 'final': null};
+    }
+
+    // 한글 분해 공식
+    final base = code - 0xAC00;
+    final initialIndex = base ~/ (21 * 28);
+    final medialIndex = (base % (21 * 28)) ~/ 28;
+    final finalIndex = base % 28;
+
+    // 초성, 중성, 종성 테이블
+    const initials = [
+      'ㄱ',
+      'ㄲ',
+      'ㄴ',
+      'ㄷ',
+      'ㄸ',
+      'ㄹ',
+      'ㅁ',
+      'ㅂ',
+      'ㅃ',
+      'ㅅ',
+      'ㅆ',
+      'ㅇ',
+      'ㅈ',
+      'ㅉ',
+      'ㅊ',
+      'ㅋ',
+      'ㅌ',
+      'ㅍ',
+      'ㅎ'
+    ];
+    const medials = [
+      'ㅏ',
+      'ㅐ',
+      'ㅑ',
+      'ㅒ',
+      'ㅓ',
+      'ㅔ',
+      'ㅕ',
+      'ㅖ',
+      'ㅗ',
+      'ㅘ',
+      'ㅙ',
+      'ㅚ',
+      'ㅛ',
+      'ㅜ',
+      'ㅝ',
+      'ㅞ',
+      'ㅟ',
+      'ㅠ',
+      'ㅡ',
+      'ㅢ',
+      'ㅣ'
+    ];
+    const finals = [
+      '',
+      'ㄱ',
+      'ㄲ',
+      'ㄳ',
+      'ㄴ',
+      'ㄵ',
+      'ㄶ',
+      'ㄷ',
+      'ㄹ',
+      'ㄺ',
+      'ㄻ',
+      'ㄼ',
+      'ㄽ',
+      'ㄾ',
+      'ㄿ',
+      'ㅀ',
+      'ㅁ',
+      'ㅂ',
+      'ㅄ',
+      'ㅅ',
+      'ㅆ',
+      'ㅇ',
+      'ㅈ',
+      'ㅊ',
+      'ㅋ',
+      'ㅌ',
+      'ㅍ',
+      'ㅎ'
+    ];
+
+    return {
+      'initial': initials[initialIndex],
+      'medial': medials[medialIndex],
+      'final': finals[finalIndex],
+    };
+  }
+
+  // 자소 단위 텍스트 비교 (한글: 자소 비교, 영어: 글자 비교)
+  Map<String, int> _compareTextByJaso(String input, String target) {
+    int correctJasos = 0;
+    int totalInputJasos = 0;
+
+    // 입력과 목표 텍스트를 자소 단위로 분해
+    final inputJasos = _decomposeTextToJasos(input);
+    final targetJasos = _decomposeTextToJasos(target);
+
+    totalInputJasos = inputJasos.length;
+    final minLength = inputJasos.length < targetJasos.length
+        ? inputJasos.length
+        : targetJasos.length;
+
+    // 자소 단위로 비교
+    for (int i = 0; i < minLength; i++) {
+      if (inputJasos[i] == targetJasos[i]) {
+        correctJasos++;
+      }
+    }
+
+    return {
+      'correctJasos': correctJasos,
+      'totalInputJasos': totalInputJasos,
+    };
+  }
+
+  // 텍스트를 자소 단위로 분해
+  List<String> _decomposeTextToJasos(String text) {
+    List<String> jasos = [];
+    final runes = text.runes.toList();
+
+    for (int i = 0; i < runes.length; i++) {
+      final char = String.fromCharCode(runes[i]);
+
+      if (_isKoreanChar(char)) {
+        // 한글인 경우 자소로 분해
+        jasos.addAll(_decomposeKoreanToJasos(char));
+      } else {
+        // 영어 및 기타 문자는 그대로 추가
+        jasos.add(char);
+      }
+    }
+
+    return jasos;
+  }
+
+  // 한글 문자를 자소 리스트로 분해
+  List<String> _decomposeKoreanToJasos(String char) {
+    if (char.isEmpty || !_isKoreanChar(char)) return [char];
+
+    final code = char.codeUnitAt(0);
+
+    // 자모인 경우 그대로 반환
+    if (code >= 0x3131 && code <= 0x318E) return [char];
+
+    // 완성형 한글인 경우 분해
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      final decomposed = _decomposeKorean(char);
+      List<String> jasos = [];
+
+      if (decomposed['initial'] != null) jasos.add(decomposed['initial']!);
+      if (decomposed['medial'] != null) jasos.add(decomposed['medial']!);
+      if (decomposed['final'] != null && decomposed['final']!.isNotEmpty) {
+        jasos.add(decomposed['final']!);
+      }
+
+      return jasos;
+    }
+
+    return [char];
   }
 }
