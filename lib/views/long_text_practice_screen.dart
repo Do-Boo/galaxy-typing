@@ -125,7 +125,10 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     if (widget.customText != null) {
       _setCustomText(widget.customText!);
     } else {
-      _selectRandomText();
+      // 초기화 시에는 텍스트를 선택하지 않고 선택 모달을 표시
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showTextSelectionModal();
+      });
     }
     _inputController.addListener(_onInputChanged);
   }
@@ -164,8 +167,222 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       _sentences = _splitIntoSentences(_currentText);
       _currentSentenceIndex = 0;
       _currentSentence = _sentences.isNotEmpty ? _sentences[0] : '';
-      _resetGame();
+      _resetGameKeepFinalStats(); // 최종 통계 유지하면서 리셋
     });
+  }
+
+  // 텍스트 선택 모달 표시
+  void _showTextSelectionModal() {
+    final settingsController =
+        Provider.of<SettingsController>(context, listen: false);
+    final isKorean = settingsController.language == LanguageOption.korean;
+    final texts = isKorean ? _koreanTexts : _englishTexts;
+    final isDesktop = ResponsiveHelper.isDesktop(context);
+    final isTablet = ResponsiveHelper.isTablet(context);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 반드시 선택해야 함
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.backgroundLighter,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.borderColor, width: 1),
+        ),
+        child: Container(
+          width: isDesktop ? 600 : (isTablet ? 500 : double.infinity),
+          constraints: BoxConstraints(
+            maxWidth: isDesktop ? 600 : (isTablet ? 500 : 400),
+            maxHeight: isDesktop ? 500 : (isTablet ? 450 : 400),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 헤더
+              Row(
+                children: [
+                  const Icon(Icons.text_snippet, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '연습할 텍스트 선택',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: isDesktop ? 22 : 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                '연습하고 싶은 텍스트를 선택하세요',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: isDesktop ? 15 : 14,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 텍스트 목록
+              Expanded(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: texts.length,
+                  itemBuilder: (context, index) {
+                    final text = texts[index];
+                    return Card(
+                      color: AppColors.backgroundDarker,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: AppColors.borderColor),
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          _selectSpecificText(index);
+                        },
+                        child: Padding(
+                          padding: EdgeInsets.all(isDesktop ? 16 : 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      text['title']!,
+                                      style: TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: isDesktop ? 17 : 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '${_getJasoCount(text['content']!)} 자소',
+                                      style: const TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                text['content']!.length > (isDesktop ? 120 : 80)
+                                    ? '${text['content']!.substring(0, isDesktop ? 120 : 80)}...'
+                                    : text['content']!,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: isDesktop ? 14 : 13,
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.text_fields,
+                                      color: AppColors.textMuted, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${_splitIntoSentences(text['content']!).length}개 문장',
+                                    style: const TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.touch_app,
+                                      color: AppColors.primary, size: 16),
+                                  const SizedBox(width: 4),
+                                  const Text(
+                                    '선택하기',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // 하단 버튼
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _selectRandomText(); // 랜덤 선택 옵션 유지
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.shuffle,
+                            color: AppColors.secondary, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          '랜덤 선택',
+                          style: TextStyle(
+                            color: AppColors.secondary,
+                            fontSize: isDesktop ? 15 : 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 특정 텍스트 선택
+  void _selectSpecificText(int index) {
+    final settingsController =
+        Provider.of<SettingsController>(context, listen: false);
+    final isKorean = settingsController.language == LanguageOption.korean;
+    final texts = isKorean ? _koreanTexts : _englishTexts;
+
+    if (index >= 0 && index < texts.length) {
+      setState(() {
+        _currentText = texts[index]['content']!;
+        _sentences = _splitIntoSentences(_currentText);
+        _currentSentenceIndex = 0;
+        _currentSentence = _sentences.isNotEmpty ? _sentences[0] : '';
+        _resetGameKeepFinalStats(); // 최종 통계 유지하면서 리셋
+      });
+    }
   }
 
   // 텍스트를 문장으로 분리
@@ -226,6 +443,43 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
       _elapsedTime = Duration.zero;
       _cpm = 0.0;
       _accuracy = 100.0;
+    });
+
+    _inputController.clear();
+    _timer?.cancel();
+  }
+
+  // 최종 통계를 유지하면서 게임 초기화
+  void _resetGameKeepFinalStats() {
+    setState(() {
+      _isPlaying = false;
+      _isPaused = false;
+      _isCompleted = false;
+      _userInput = '';
+      _currentPosition = 0;
+
+      // 누적 통계 초기화
+      _totalCorrectJasos = 0;
+      _totalTypedJasos = 0;
+      _errors = 0;
+      _completedSentences = 0;
+
+      // 현재 문장 통계 초기화
+      _currentCorrectJasos = 0;
+      _currentTotalJasos = 0;
+
+      _currentSentenceIndex = 0;
+      if (_sentences.isNotEmpty) {
+        _currentSentence = _sentences[0];
+      }
+      _startTime = null;
+      _endTime = null;
+      _elapsedTime = Duration.zero;
+      _cpm = 0.0;
+      _accuracy = 100.0;
+
+      // 최종 통계 변수들은 초기화하지 않음 (유지)
+      // _finalCpm, _finalAccuracy, _finalElapsedTime, _finalCompletedSentences는 그대로 유지
     });
 
     _inputController.clear();
@@ -619,6 +873,12 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
   void _calculateFinalStats() {
     _calculateAccuracy();
     _calculateCPM();
+
+    // 최종 통계를 별도 변수에 저장
+    _finalCpm = _cpm;
+    _finalAccuracy = _accuracy;
+    _finalElapsedTime = _elapsedTime;
+    _finalCompletedSentences = _completedSentences;
   }
 
   // 세션 저장 - 자소 단위로 수정
@@ -640,39 +900,8 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
 
   // 새 게임 시작 (최종 결과 유지)
   void _startNewGame() {
-    // 새 텍스트 선택
-    _selectRandomText();
-
-    // 게임 상태만 초기화 (최종 통계는 유지)
-    setState(() {
-      _isPlaying = false;
-      _isPaused = false;
-      _isCompleted = false;
-      _userInput = '';
-      _currentPosition = 0;
-
-      // 새 게임을 위한 통계 초기화
-      _totalCorrectJasos = 0;
-      _totalTypedJasos = 0;
-      _errors = 0;
-      _completedSentences = 0;
-      _currentCorrectJasos = 0;
-      _currentTotalJasos = 0;
-
-      _currentSentenceIndex = 0;
-      if (_sentences.isNotEmpty) {
-        _currentSentence = _sentences[0];
-      }
-      _startTime = null;
-      _endTime = null;
-      _elapsedTime = Duration.zero;
-      _cpm = 0.0;
-      _accuracy = 100.0;
-    });
-
-    _inputController.clear();
-    _timer?.cancel();
-    _inputFocusNode.requestFocus();
+    // 텍스트 선택 모달 표시 (최종 통계 유지)
+    _showTextSelectionModal();
   }
 
   // 다음 문장으로 이동
@@ -854,7 +1083,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                         IconButton(
                           icon: const Icon(Icons.refresh,
                               color: AppColors.textSecondary),
-                          onPressed: _selectRandomText,
+                          onPressed: _showTextSelectionModal,
                           tooltip: '새 텍스트',
                         ),
                         IconButton(
@@ -1136,6 +1365,11 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
 
             const SizedBox(height: 16),
 
+            // 광고 placeholder 추가
+            _buildAdPlaceholder(context),
+
+            const SizedBox(height: 16),
+
             // 타이핑 영역 - 웹 스타일의 타이핑 디스플레이 적용
             Container(
               constraints: BoxConstraints(
@@ -1302,7 +1536,7 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
                     size: isDesktop
                         ? CosmicButtonSize.large
                         : CosmicButtonSize.medium,
-                    onPressed: _selectRandomText,
+                    onPressed: _showTextSelectionModal,
                   ),
                   if (_isCompleted)
                     CosmicButton(
@@ -1367,6 +1601,30 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
   // 텍스트 스팬 생성 (게임 완료 시 간단한 메시지만 표시)
   List<TextSpan> _buildTextSpans() {
     List<TextSpan> spans = [];
+
+    // 텍스트가 선택되지 않은 경우
+    if (_currentText.isEmpty) {
+      spans.add(const TextSpan(
+        text: '📚 텍스트를 선택해주세요\n\n',
+        style: TextStyle(
+          color: AppColors.primary,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          height: 1.5,
+        ),
+      ));
+
+      spans.add(const TextSpan(
+        text: '"새 텍스트" 버튼을 클릭하여\n연습할 텍스트를 선택하세요',
+        style: TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 16,
+          height: 1.4,
+        ),
+      ));
+
+      return spans;
+    }
 
     // 게임 완료 시 간단한 완료 메시지만 표시
     if (_isCompleted) {
@@ -1667,5 +1925,48 @@ class _LongTextPracticeScreenState extends State<LongTextPracticeScreen> {
     }
 
     return [char];
+  }
+
+  // 광고 placeholder 위젯
+  Widget _buildAdPlaceholder(BuildContext context) {
+    final isDesktop = ResponsiveHelper.isDesktop(context);
+    final isTablet = ResponsiveHelper.isTablet(context);
+
+    return Container(
+      width: double.infinity,
+      height: isDesktop ? 100 : (isTablet ? 80 : 60),
+      constraints: BoxConstraints(
+        maxWidth: isDesktop ? 800 : 600,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLighter.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.ads_click,
+              color: AppColors.primary.withOpacity(0.5),
+              size: isDesktop ? 24 : 20,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Advertisement',
+              style: TextStyle(
+                color: AppColors.primary.withOpacity(0.5),
+                fontSize: isDesktop ? 12 : 10,
+                fontFamily: 'Rajdhani',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

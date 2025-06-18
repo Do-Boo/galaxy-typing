@@ -161,12 +161,12 @@ class CosmicButton extends StatelessWidget {
   Color _getBackgroundColor() {
     switch (type) {
       case CosmicButtonType.primary:
-        return AppColors.primary;
+        return AppColors.buttonPrimaryBg;
       case CosmicButtonType.secondary:
-        return AppColors.secondary;
+        return AppColors.buttonSecondaryBg;
       case CosmicButtonType.outline:
       case CosmicButtonType.text:
-        return Colors.transparent;
+        return AppColors.buttonOutlineBg;
     }
   }
 
@@ -174,12 +174,13 @@ class CosmicButton extends StatelessWidget {
   Color _getTextColor() {
     switch (type) {
       case CosmicButtonType.primary:
+        return AppColors.buttonPrimaryText;
       case CosmicButtonType.secondary:
-        return Colors.white;
+        return AppColors.buttonSecondaryText;
       case CosmicButtonType.outline:
-        return AppColors.primary;
+        return AppColors.buttonOutlineText;
       case CosmicButtonType.text:
-        return AppColors.textPrimary;
+        return AppColors.primary;
     }
   }
 
@@ -187,7 +188,7 @@ class CosmicButton extends StatelessWidget {
   Color _getBorderColor() {
     switch (type) {
       case CosmicButtonType.outline:
-        return AppColors.primary;
+        return AppColors.buttonOutlineBorder;
       case CosmicButtonType.primary:
       case CosmicButtonType.secondary:
       case CosmicButtonType.text:

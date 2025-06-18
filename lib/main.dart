@@ -16,7 +16,10 @@ import 'controllers/stats_controller.dart';
 import 'models/game_settings.dart';
 import 'services/audio_service.dart';
 import 'utils/app_theme.dart';
+import 'views/long_text_practice_screen.dart';
+import 'views/shared_text_library_screen.dart';
 import 'views/splash_screen.dart';
+import 'views/text_upload_screen.dart';
 
 // 앱 구성 요소의 전역 인스턴스
 // 앱 전체에서 일관된 인스턴스 사용을 위한 변수들
@@ -83,11 +86,6 @@ class CosmicTyperApp extends StatelessWidget {
       ],
       child: Consumer<SettingsController>(
         builder: (context, settingsController, _) {
-          // 테마 모드 설정에 따라 테마 변경
-          final themeMode = settingsController.darkThemeEnabled
-              ? ThemeMode.dark
-              : ThemeMode.light;
-
           // 접근성 설정
           const isAccessibilityMode = false; // 기본값으로 설정 (필요 시 나중에 구현)
 
@@ -99,9 +97,7 @@ class CosmicTyperApp extends StatelessWidget {
 
           return MaterialApp(
             title: 'Cosmic Typer',
-            theme: AppTheme.lightTheme(),
-            darkTheme: AppTheme.darkTheme(),
-            themeMode: themeMode,
+            theme: AppTheme.cosmicTheme(),
             debugShowCheckedModeBanner: false,
 
             // 로컬라이제이션 설정
@@ -121,7 +117,16 @@ class CosmicTyperApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
 
-            home: const SplashScreen(),
+            // 라우트 설정 (home 대신 routes와 initialRoute 사용)
+            routes: {
+              '/': (context) => const SplashScreen(),
+              '/text-upload': (context) => const TextUploadScreen(),
+              '/long-text-practice': (context) =>
+                  const LongTextPracticeScreen(),
+              '/shared-text-library': (context) =>
+                  const SharedTextLibraryScreen(),
+            },
+            initialRoute: '/',
 
             // 접근성 및 글꼴 크기 설정
             builder: (context, child) {

@@ -1,20 +1,21 @@
 // 공유 텍스트 라이브러리 화면
-// 작성: 2025-06-10
-// 사용자들이 공유한 텍스트를 탐색하고 다운로드할 수 있는 화면
+// 작성: 2024-05-15
+// 업데이트: 2025-06-18 (간소화된 레이아웃으로 재구성)
+// 다른 사용자들이 공유한 텍스트를 탐색하고 다운로드할 수 있는 간단한 화면
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/shared_text.dart';
+import '../services/audio_service.dart';
 import '../services/shared_text_service.dart';
 import '../utils/app_theme.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/back_button.dart';
 import '../widgets/cosmic_button.dart';
+import '../widgets/cosmic_card.dart';
+import '../widgets/cosmic_input_field.dart';
 import '../widgets/page_header.dart';
 import '../widgets/space_background.dart';
-import 'long_text_practice_screen.dart';
-import 'text_upload_screen.dart';
 
 class SharedTextLibraryScreen extends StatefulWidget {
   const SharedTextLibraryScreen({super.key});
@@ -24,328 +25,506 @@ class SharedTextLibraryScreen extends StatefulWidget {
       _SharedTextLibraryScreenState();
 }
 
-class _SharedTextLibraryScreenState extends State<SharedTextLibraryScreen> {
+class _SharedTextLibraryScreenState extends State<SharedTextLibraryScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  final _audioService = AudioService();
   final _sharedTextService = SharedTextService();
-  final _searchController = TextEditingController();
 
+  // 상태 변수들
   List<SharedText> _allTexts = [];
   List<SharedText> _filteredTexts = [];
   bool _isLoading = true;
+  String _selectedCategory = '전체';
+  String _selectedDifficulty = '전체';
+  final _searchController = TextEditingController();
+
+  // 필터 옵션
+  final List<String> _categories = ['전체', '일반', '소설', '시', '뉴스', '기술', '기타'];
+  final List<String> _difficulties = ['전체', '초급', '중급', '고급'];
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    // 음악 중지
+    _audioService.stop();
+
+    // 데이터 로드
     _loadTexts();
+
+    // 애니메이션 시작
+    _animationController.forward();
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _loadTexts() async {
+    print('텍스트 로딩 시작');
     setState(() => _isLoading = true);
 
     try {
       final texts = await _sharedTextService.getAllSharedTexts();
+      print('로드된 텍스트 수: ${texts.length}');
       setState(() {
         _allTexts = texts;
         _filteredTexts = texts;
         _isLoading = false;
       });
+      print('텍스트 로딩 완료');
     } catch (e) {
+      print('텍스트 로딩 실패: $e');
       setState(() => _isLoading = false);
     }
   }
 
-  void _applyFilters() {
+  void _filterTexts() {
     setState(() {
       _filteredTexts = _allTexts.where((text) {
         // 검색어 필터
         final searchQuery = _searchController.text.toLowerCase();
         if (searchQuery.isNotEmpty) {
           if (!text.title.toLowerCase().contains(searchQuery) &&
-              !text.content.toLowerCase().contains(searchQuery) &&
-              !text.tags
-                  .any((tag) => tag.toLowerCase().contains(searchQuery))) {
+              !text.content.toLowerCase().contains(searchQuery)) {
             return false;
           }
         }
 
+        // 카테고리 필터
+        if (_selectedCategory != '전체' && text.category != _selectedCategory) {
+          return false;
+        }
+
+        // 난이도 필터
+        if (_selectedDifficulty != '전체' &&
+            text.difficulty != _selectedDifficulty) {
+          return false;
+        }
+
         return true;
       }).toList();
-
-      // 최신순으로 정렬
-      _filteredTexts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     });
-  }
-
-  Future<void> _downloadAndPractice(SharedText text) async {
-    // 다운로드 수 증가
-    await _sharedTextService.downloadText(text.id);
-
-    // 긴글 연습 화면으로 이동
-    if (mounted) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => LongTextPracticeScreen(
-            customText: text.content,
-            customTitle: text.title,
-          ),
-        ),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDesktop = ResponsiveHelper.isDesktop(context);
-    final isTablet = ResponsiveHelper.isTablet(context);
+    final screenPadding = ResponsiveHelper.screenPadding(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      resizeToAvoidBottomInset: !kIsWeb,
       body: Stack(
         children: [
           const SpaceBackground(),
           SafeArea(
-            child: ResponsiveHelper.centeredContent(
-              context: context,
-              child: Column(
-                children: [
-                  // 헤더
-                  Padding(
-                    padding: ResponsiveHelper.screenPadding(context),
-                    child: Row(
-                      children: [
-                        CosmicBackButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                        Expanded(
-                          child: PageHeader(
-                            title: 'TEXT LIBRARY',
-                            subtitle: '사용자들이 공유한 텍스트 모음',
-                            centerAlign: true,
-                            titleFontSize:
-                                isDesktop ? 32 : (isTablet ? 28 : 24),
-                          ),
-                        ),
-                        // 업로드 버튼
-                        CosmicButton(
-                          label:
-                              ResponsiveHelper.isMobile(context) ? '' : '업로드',
-                          icon: Icons.upload,
-                          type: CosmicButtonType.primary,
-                          size: ResponsiveHelper.isMobile(context)
-                              ? CosmicButtonSize.small
-                              : CosmicButtonSize.medium,
-                          onPressed: () async {
-                            final result = await Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const TextUploadScreen(),
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: ResponsiveHelper.centeredContent(
+                context: context,
+                child: Scrollbar(
+                  thumbVisibility: false,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: screenPadding,
+                      child: Column(
+                        children: [
+                          SizedBox(height: isDesktop ? 20 : 10),
+
+                          // 헤더
+                          Row(
+                            children: [
+                              CosmicBackButton(
+                                onPressed: () => Navigator.of(context).pop(),
                               ),
-                            );
-                            if (result == true) {
-                              _loadTexts(); // 새로 업로드된 텍스트 반영
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 검색 바
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: '제목, 내용, 태그로 검색...',
-                        prefixIcon: const Icon(Icons.search,
-                            color: AppColors.textSecondary),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear,
-                                    color: AppColors.textSecondary),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _applyFilters();
+                              const Expanded(
+                                child: PageHeader(
+                                  title: 'TEXT LIBRARY',
+                                  subtitle: '공유 텍스트 라이브러리',
+                                  centerAlign: true,
+                                ),
+                              ),
+                              CosmicButton(
+                                label: isDesktop ? '새 텍스트 업로드' : '',
+                                icon: Icons.add,
+                                type: CosmicButtonType.primary,
+                                size: isDesktop
+                                    ? CosmicButtonSize.medium
+                                    : CosmicButtonSize.small,
+                                onPressed: () async {
+                                  print('새 텍스트 업로드 버튼 클릭됨');
+                                  try {
+                                    final result = await Navigator.of(context)
+                                        .pushNamed('/text-upload');
+                                    print('업로드 화면에서 돌아옴: $result');
+                                    if (result == true) {
+                                      _loadTexts();
+                                    }
+                                  } catch (e) {
+                                    print('업로드 화면 이동 오류: $e');
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('업로드 화면으로 이동 중 오류: $e'),
+                                        backgroundColor: AppColors.error,
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
                                 },
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.07),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: AppColors.borderColor),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: AppColors.borderColor),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: AppColors.primary, width: 2),
-                        ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // 검색 및 필터
+                          _buildSearchAndFilter(context),
+
+                          const SizedBox(height: 16),
+
+                          // 텍스트 목록
+                          if (_isLoading)
+                            _buildLoadingWidget()
+                          else if (_filteredTexts.isEmpty)
+                            _buildEmptyWidget()
+                          else
+                            _buildTextList(context),
+
+                          const SizedBox(height: 10),
+                        ],
                       ),
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      onChanged: (_) => _applyFilters(),
                     ),
                   ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                  const SizedBox(height: 16),
+  // 검색 및 필터
+  Widget _buildSearchAndFilter(BuildContext context) {
+    final isDesktop = ResponsiveHelper.isDesktop(context);
 
-                  // 텍스트 목록
+    return CosmicCard(
+      title: '검색 및 필터',
+      titleIcon: Icons.search,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // 검색 필드
+            CosmicInputField(
+              controller: _searchController,
+              label: '검색',
+              hintText: '제목이나 내용으로 검색하세요',
+              prefixIcon: Icons.search,
+              onChanged: (_) => _filterTexts(),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 필터
+            if (isDesktop)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
                   Expanded(
-                    child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                                color: AppColors.primary),
-                          )
-                        : _filteredTexts.isEmpty
-                            ? _buildEmptyState()
-                            : _buildTextList(),
+                    child: _buildDropdown(
+                      '카테고리',
+                      _selectedCategory,
+                      _categories,
+                      (value) {
+                        setState(() => _selectedCategory = value!);
+                        _filterTexts();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildDropdown(
+                      '난이도',
+                      _selectedDifficulty,
+                      _difficulties,
+                      (value) {
+                        setState(() => _selectedDifficulty = value!);
+                        _filterTexts();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 0),
+                    child: CosmicButton(
+                      label: '초기화',
+                      icon: Icons.refresh,
+                      type: CosmicButtonType.outline,
+                      size: CosmicButtonSize.medium,
+                      onPressed: _resetFilters,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                children: [
+                  _buildDropdown(
+                    '카테고리',
+                    _selectedCategory,
+                    _categories,
+                    (value) {
+                      setState(() => _selectedCategory = value!);
+                      _filterTexts();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDropdown(
+                    '난이도',
+                    _selectedDifficulty,
+                    _difficulties,
+                    (value) {
+                      setState(() => _selectedDifficulty = value!);
+                      _filterTexts();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: CosmicButton(
+                      label: '초기화',
+                      icon: Icons.refresh,
+                      type: CosmicButtonType.outline,
+                      size: CosmicButtonSize.medium,
+                      onPressed: _resetFilters,
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextList() {
-    final isDesktop = ResponsiveHelper.isDesktop(context);
-    final crossAxisCount = isDesktop ? 2 : 1;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          childAspectRatio: isDesktop ? 2.5 : 1.8,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+          ],
         ),
-        itemCount: _filteredTexts.length,
-        itemBuilder: (context, index) {
-          final text = _filteredTexts[index];
-          return _buildTextCard(text);
-        },
       ),
     );
   }
 
-  Widget _buildTextCard(SharedText text) {
+  // 텍스트 목록
+  Widget _buildTextList(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 목록 헤더
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.list, color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '텍스트 목록 (${_filteredTexts.length}개)',
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // 텍스트 아이템들
+        ..._filteredTexts.map((text) => _buildTextItem(context, text)),
+      ],
+    );
+  }
+
+  // 텍스트 아이템
+  Widget _buildTextItem(BuildContext context, SharedText text) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.backgroundLighter.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.backgroundLighter.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 제목과 카테고리
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  text.title,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  text.category,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // 작성자와 난이도
+          Row(
+            children: [
+              const Icon(Icons.person,
+                  color: AppColors.textSecondary, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                text.authorName,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Icon(Icons.bar_chart,
+                  color: AppColors.textSecondary, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                text.difficulty,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // 내용 미리보기
+          Text(
+            text.content.length > 100
+                ? '${text.content.substring(0, 100)}...'
+                : text.content,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // 다운로드 버튼과 정보
+          Row(
+            children: [
+              CosmicButton(
+                label: '연습하기',
+                icon: Icons.play_arrow,
+                type: CosmicButtonType.primary,
+                size: CosmicButtonSize.small,
+                onPressed: () {
+                  print('연습하기 버튼 onPressed 호출됨');
+                  _startPractice(text);
+                },
+              ),
+              const SizedBox(width: 12),
+              CosmicButton(
+                label: '다운로드',
+                icon: Icons.download,
+                type: CosmicButtonType.outline,
+                size: CosmicButtonSize.small,
+                onPressed: () {
+                  print('다운로드 버튼 onPressed 호출됨');
+                  _downloadText(text);
+                },
+              ),
+              const Spacer(),
+              Text(
+                '다운로드 ${text.downloadCount}회',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  // 로딩 위젯
+  Widget _buildLoadingWidget() {
+    return const CosmicCard(
+      title: '로딩 중...',
+      titleIcon: Icons.hourglass_empty,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(40),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 빈 목록 위젯
+  Widget _buildEmptyWidget() {
+    return CosmicCard(
+      title: '검색 결과 없음',
+      titleIcon: Icons.search_off,
+      child: Padding(
+        padding: const EdgeInsets.all(40),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 제목과 카테고리
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    text.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    text.category,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+            const Icon(
+              Icons.text_snippet_outlined,
+              color: AppColors.textSecondary,
+              size: 64,
             ),
-
-            const SizedBox(height: 8),
-
-            // 내용 미리보기
-            Text(
-              text.content,
-              style: const TextStyle(
-                fontSize: 14,
+            const SizedBox(height: 16),
+            const Text(
+              '검색 조건에 맞는 텍스트가 없습니다.',
+              style: TextStyle(
                 color: AppColors.textSecondary,
-                height: 1.4,
+                fontSize: 16,
               ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
-
-            const Spacer(),
-
-            // 메타 정보
-            Row(
-              children: [
-                _buildMetaChip(Icons.person, text.authorName),
-                const SizedBox(width: 8),
-                _buildMetaChip(Icons.download, '${text.downloadCount}'),
-                const SizedBox(width: 8),
-                _buildMetaChip(Icons.timer, '${text.estimatedMinutes}분'),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // 액션 버튼
-            Row(
-              children: [
-                Expanded(
-                  child: CosmicButton(
-                    label: '연습하기',
-                    icon: Icons.play_arrow,
-                    type: CosmicButtonType.primary,
-                    size: CosmicButtonSize.small,
-                    onPressed: () => _downloadAndPractice(text),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                CosmicButton(
-                  label: '',
-                  icon: Icons.info_outline,
-                  type: CosmicButtonType.outline,
-                  size: CosmicButtonSize.small,
-                  onPressed: () => _showTextDetails(text),
-                ),
-              ],
+            const SizedBox(height: 16),
+            CosmicButton(
+              label: '필터 초기화',
+              icon: Icons.refresh,
+              type: CosmicButtonType.outline,
+              size: CosmicButtonSize.medium,
+              onPressed: _resetFilters,
             ),
           ],
         ),
@@ -353,148 +532,132 @@ class _SharedTextLibraryScreenState extends State<SharedTextLibraryScreen> {
     );
   }
 
-  Widget _buildMetaChip(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.black12,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: AppColors.textSecondary),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 10,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: AppColors.textSecondary.withOpacity(0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '검색 결과가 없습니다',
-            style: TextStyle(
-              fontSize: 18,
-              color: AppColors.textSecondary.withOpacity(0.7),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '다른 검색어를 시도해보세요',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary.withOpacity(0.5),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showTextDetails(SharedText text) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.backgroundLighter,
-        title: Text(text.title,
-            style: const TextStyle(color: AppColors.textPrimary)),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (text.description.isNotEmpty) ...[
-                Text(text.description,
-                    style: const TextStyle(color: AppColors.textSecondary)),
-                const SizedBox(height: 16),
-              ],
-              _buildDetailRow('작성자', text.authorName),
-              _buildDetailRow('카테고리', text.category),
-              _buildDetailRow('난이도', text.difficulty),
-              _buildDetailRow('언어', text.language),
-              _buildDetailRow('길이', '${text.textLength}자'),
-              _buildDetailRow('문장 수', '${text.sentenceCount}개'),
-              _buildDetailRow('예상 시간', '${text.estimatedMinutes}분'),
-              _buildDetailRow('다운로드', '${text.downloadCount}회'),
-              if (text.tags.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                const Text('태그:',
-                    style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 4,
-                  children: text.tags
-                      .map((tag) => Chip(
-                            label:
-                                Text(tag, style: const TextStyle(fontSize: 10)),
-                            backgroundColor: AppColors.primary.withOpacity(0.2),
-                          ))
-                      .toList(),
-                ),
-              ],
-            ],
+  // 드롭다운 빌더
+  Widget _buildDropdown(
+    String label,
+    String value,
+    List<String> items,
+    void Function(String?) onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('닫기',
-                style: TextStyle(color: AppColors.textSecondary)),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: AppColors.backgroundLighter,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.borderColor),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _downloadAndPractice(text);
-            },
-            child:
-                const Text('연습하기', style: TextStyle(color: AppColors.primary)),
+          child: DropdownButton<String>(
+            value: value,
+            onChanged: onChanged,
+            items: items.map((item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(
+                  item,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14,
+                  ),
+                ),
+              );
+            }).toList(),
+            underline: const SizedBox(),
+            isExpanded: true,
+            dropdownColor: AppColors.backgroundLighter,
+            icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  // 필터 초기화
+  void _resetFilters() {
+    print('필터 초기화 버튼 클릭됨');
+    setState(() {
+      _selectedCategory = '전체';
+      _selectedDifficulty = '전체';
+      _searchController.clear();
+    });
+    _filterTexts();
+
+    // 사용자에게 피드백 제공
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('필터가 초기화되었습니다.'),
+        backgroundColor: AppColors.primary,
+        duration: Duration(seconds: 1),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontWeight: FontWeight.bold),
-            ),
+  // 연습 시작
+  void _startPractice(SharedText text) {
+    print('연습 시작 버튼 클릭됨: ${text.title}');
+
+    // 라우트가 없을 경우를 대비한 대체 방법
+    try {
+      Navigator.of(context).pushNamed(
+        '/long-text-practice',
+        arguments: {
+          'text': text.content,
+          'title': text.title,
+        },
+      );
+    } catch (e) {
+      print('라우트 오류: $e');
+      // 대체 방법: 직접 화면 이동
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('연습 화면으로 이동: ${text.title}'),
+          backgroundColor: AppColors.primary,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  // 텍스트 다운로드
+  Future<void> _downloadText(SharedText text) async {
+    print('다운로드 버튼 클릭됨: ${text.title}');
+
+    try {
+      await _sharedTextService.downloadText(text.id);
+      print('다운로드 성공: ${text.title}');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('텍스트가 다운로드되었습니다!'),
+            backgroundColor: AppColors.success,
+            duration: Duration(seconds: 2),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: AppColors.textPrimary),
-            ),
+        );
+      }
+    } catch (e) {
+      print('다운로드 실패: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('다운로드 실패: $e'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 2),
           ),
-        ],
-      ),
-    );
+        );
+      }
+    }
   }
 }

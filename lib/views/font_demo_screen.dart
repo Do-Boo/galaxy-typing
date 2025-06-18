@@ -67,11 +67,16 @@ class _FontDemoScreenState extends State<FontDemoScreen> {
                               centerAlign: true,
                             ),
                           ),
-                          const SizedBox(width: 40),
+                          const SizedBox(width: 48), // 뒤로가기 버튼과 균형 맞추기
                         ],
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 16),
+
+                      // 광고 placeholder 추가
+                      _buildAdPlaceholder(context),
+
+                      const SizedBox(height: 16),
 
                       // PressStart2P 폰트 섹션
                       _buildSection(
@@ -233,6 +238,18 @@ class _FontDemoScreenState extends State<FontDemoScreen> {
             Center(child: child),
           ],
         ),
+      ),
+    );
+  }
+
+  // 광고 placeholder 추가
+  Widget _buildAdPlaceholder(BuildContext context) {
+    return Container(
+      height: 100,
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        border: Border.all(color: AppColors.borderColor),
+        borderRadius: BorderRadius.circular(8),
       ),
     );
   }

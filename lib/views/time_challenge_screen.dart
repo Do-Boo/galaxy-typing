@@ -127,6 +127,11 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
     if (_wordList.isNotEmpty) {
       setState(() {
         _currentWord = _wordList[0];
+        // 초기 상태를 게임 준비 상태로 설정 (단어는 보이지만 게임은 시작되지 않음)
+        _isPlaying = false;
+        _isPaused = false;
+        _isFinished = false;
+        _isCountingDown = false;
       });
     }
   }
@@ -568,6 +573,11 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
 
                   const SizedBox(height: 12),
 
+                  // 광고 placeholder 추가 (모바일)
+                  _buildAdPlaceholder(context),
+
+                  const SizedBox(height: 12),
+
                   // 타이핑 영역 (카운트다운 시에는 카운트다운 표시)
                   _isCountingDown
                       ? _buildCountdownOverlay(context)
@@ -620,7 +630,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
                                   ? '일시 정지됨'
                                   : _isCountingDown
                                       ? '카운트다운 중...'
-                                      : '입력을 시작하면 자동으로 게임이 시작됩니다',
+                                      : '위의 단어를 입력하면 카운트다운 후 게임이 시작됩니다',
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.07),
                       border: OutlineInputBorder(
@@ -886,7 +896,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
               children: [
                 // 현재 목표 단어
                 Text(
-                  _isPlaying ? _currentWord : '시작 버튼을 눌러 도전을 시작하세요',
+                  _currentWord.isNotEmpty ? _currentWord : '단어를 불러오는 중...',
                   style: TextStyle(
                     fontSize: isTablet ? 24 : 20,
                     color: AppColors.textSecondary,
@@ -912,7 +922,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
                   constraints: const BoxConstraints(
                     minHeight: 60,
                   ),
-                  child: _isPlaying
+                  child: _currentWord.isNotEmpty
                       ? TypingTextDisplay(
                           targetText: _currentWord,
                           typedText: _currentTypedText,
@@ -920,7 +930,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
                         )
                       : Center(
                           child: Text(
-                            '아래에 타이핑을 시작하면 카운트다운 후 게임이 시작됩니다',
+                            '단어를 불러오는 중...',
                             style: TextStyle(
                               fontSize: isTablet ? 18 : 16,
                               color: AppColors.textSecondary.withOpacity(0.5),
@@ -1186,7 +1196,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
             children: [
               // 현재 목표 단어
               Text(
-                _isPlaying ? _currentWord : '시작 버튼을 눌러 도전을 시작하세요',
+                _currentWord.isNotEmpty ? _currentWord : '단어를 불러오는 중...',
                 style: TextStyle(
                   fontSize: isDesktop ? 28 : (isTablet ? 24 : 20),
                   color: AppColors.textSecondary,
@@ -1212,7 +1222,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
                 constraints: BoxConstraints(
                   minHeight: isDesktop ? 80 : 60,
                 ),
-                child: _isPlaying
+                child: _currentWord.isNotEmpty
                     ? TypingTextDisplay(
                         targetText: _currentWord,
                         typedText: _currentTypedText,
@@ -1220,7 +1230,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
                       )
                     : Center(
                         child: Text(
-                          '아래에 타이핑을 시작하면 카운트다운 후 게임이 시작됩니다',
+                          '단어를 불러오는 중...',
                           style: TextStyle(
                             fontSize: isDesktop ? 18 : 16,
                             color: AppColors.textSecondary.withOpacity(0.5),
@@ -1238,11 +1248,13 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
 
         // 지시사항 텍스트
         if (isDesktop || isTablet)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              '위의 단어를 입력하세요. 시간이 다 되면 자동으로 게임이 종료됩니다.',
-              style: TextStyle(
+              _isPlaying
+                  ? '위의 단어를 입력하세요. 시간이 다 되면 자동으로 게임이 종료됩니다.'
+                  : '아래에 타이핑을 시작하면 카운트다운 후 게임이 시작됩니다.',
+              style: const TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 14,
               ),
@@ -1275,7 +1287,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
                           ? '일시 정지됨'
                           : _isCountingDown
                               ? '카운트다운 중...'
-                              : '입력을 시작하면 자동으로 게임이 시작됩니다',
+                              : '위의 단어를 입력하면 카운트다운 후 게임이 시작됩니다',
               // prefixIcon: Icon(Icons.keyboard),
               filled: true,
               fillColor: Colors.white.withOpacity(0.07),
@@ -1372,7 +1384,7 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
       // 시작 전 - 단순 안내 메시지만 표시
       return Center(
         child: Text(
-          '타이핑을 시작하면 게임이 자동으로 시작됩니다',
+          '위의 단어를 타이핑하면 카운트다운 후 게임이 시작됩니다',
           style: TextStyle(
             fontSize: isDesktop ? 16 : 14,
             color: AppColors.textSecondary,
@@ -1718,5 +1730,48 @@ class _TimeChallengeScreenState extends State<TimeChallengeScreen> {
     }
 
     return [char];
+  }
+
+  // 광고 placeholder 위젯
+  Widget _buildAdPlaceholder(BuildContext context) {
+    final isDesktop = ResponsiveHelper.isDesktop(context);
+    final isTablet = ResponsiveHelper.isTablet(context);
+
+    return Container(
+      width: double.infinity,
+      height: isDesktop ? 100 : (isTablet ? 80 : 60),
+      constraints: BoxConstraints(
+        maxWidth: isDesktop ? 600 : 500,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLighter.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.ads_click,
+              color: AppColors.primary.withOpacity(0.5),
+              size: isDesktop ? 24 : 20,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Advertisement',
+              style: TextStyle(
+                color: AppColors.primary.withOpacity(0.5),
+                fontSize: isDesktop ? 12 : 10,
+                fontFamily: 'Rajdhani',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

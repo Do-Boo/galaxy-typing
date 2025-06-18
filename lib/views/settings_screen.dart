@@ -1,6 +1,7 @@
 // 설정 화면
 // 작성: 2024-05-15
 // 업데이트: 2024-06-10 (다국어 지원 적용)
+// 업데이트: 2025-06-18 (다크/라이트 모드 제거, 단일 우주 테마 적용)
 // 앱의 설정을 관리하는 화면
 
 import 'package:flutter/material.dart';
@@ -10,12 +11,10 @@ import '../controllers/settings_controller.dart';
 import '../models/game_settings.dart';
 import '../services/audio_service.dart';
 import '../utils/app_theme.dart';
-import '../utils/localization.dart';
 import '../utils/responsive_helper.dart';
 import '../widgets/back_button.dart';
 import '../widgets/cosmic_button.dart';
 import '../widgets/cosmic_card.dart';
-import '../widgets/page_header.dart';
 import '../widgets/space_background.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -27,290 +26,257 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _audioService = AudioService();
-  // Provider에서 참조할 컨트롤러를 저장할 필드
-  late SettingsController _settingsController;
 
   @override
   void initState() {
     super.initState();
-
-    // 음악 중지 (space_defense_screen 전용)
     _audioService.stop();
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // didChangeDependencies에서 컨트롤러 참조 가져오기
-    _settingsController =
-        Provider.of<SettingsController>(context, listen: false);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // 설정 컨트롤러를 listen: true로 사용하여 UI 즉시 업데이트
     final settingsController =
         Provider.of<SettingsController>(context, listen: true);
     final isDesktop = ResponsiveHelper.isDesktop(context);
     final isTablet = ResponsiveHelper.isTablet(context);
     final screenPadding = ResponsiveHelper.screenPadding(context);
 
-    return WillPopScope(
-      // 뒤로가기 버튼 처리
-      onWillPop: () => _onWillPop(context, settingsController),
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: Stack(
-          children: [
-            // 배경
-            SpaceBackground(
-              particleDensity: isDesktop ? 150 : (isTablet ? 100 : 70),
-            ),
-
-            // 메인 콘텐츠
-            SafeArea(
-              child: ResponsiveHelper.centeredContent(
-                context: context,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Padding(
-                    padding: screenPadding,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // 헤더 및 뒤로가기 버튼
-                        Row(
-                          children: [
-                            CosmicBackButton(
-                              onPressed: () async {
-                                // 저장되지 않은 변경 사항이 있으면 경고 대화상자 표시
-                                if (settingsController.hasUnsavedChanges) {
-                                  final shouldProceed =
-                                      await _showUnsavedChangesDialog(context);
-                                  if (!shouldProceed) return;
-                                }
-                                if (context.mounted) {
-                                  Navigator.of(context).pop();
-                                }
-                              },
-                            ),
-                            Expanded(
-                              child: PageHeader(
-                                title: context.tr('settings'),
-                                titleFontSize: isDesktop ? 32 : 24,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // 모바일 스타일로 통일 - 항상 세로로 배치
-                        Column(
-                          children: [
-                            _buildGameSettingsCard(context, settingsController),
-                            const SizedBox(height: 24),
-                            _buildAppSettingsCard(context, settingsController),
-                            const SizedBox(height: 24),
-                            _buildAccessibilitySettingsCard(
-                                context, settingsController),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // 하단 버튼들
-                        Row(
-                          children: [
-                            if (isDesktop || isTablet)
-                              // 기본값으로 재설정 버튼 (데스크톱 및 태블릿에서는 좌측에 배치)
-                              Expanded(
-                                child: CosmicButton(
-                                  label: context.tr('reset_defaults'),
-                                  type: CosmicButtonType.secondary,
-                                  size: isDesktop
-                                      ? CosmicButtonSize.large
-                                      : CosmicButtonSize.medium,
-                                  icon: Icons.restore,
-                                  isFullWidth: true,
-                                  onPressed: () async {
-                                    // 재설정 확인 대화상자 표시
-                                    final confirmed =
-                                        await _showResetConfirmDialog(context);
-                                    if (confirmed) {
-                                      await settingsController
-                                          .resetToDefaults();
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                                context.tr('reset_success')),
-                                            backgroundColor: AppColors.success,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                                ),
-                              ),
-
-                            if (isDesktop || isTablet)
-                              const SizedBox(width: 16),
-
-                            // 저장 버튼 (데스크톱 및 태블릿에서는 우측에 배치)
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          SpaceBackground(
+            particleDensity: isDesktop ? 150 : (isTablet ? 100 : 70),
+          ),
+          SafeArea(
+            child: ResponsiveHelper.centeredContent(
+              context: context,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: screenPadding,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          CosmicBackButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                          const SizedBox(width: 48),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildAdPlaceholder(context),
+                      const SizedBox(height: 16),
+                      Column(
+                        children: [
+                          _buildGameSettingsCard(context, settingsController),
+                          const SizedBox(height: 24),
+                          _buildAppSettingsCard(context, settingsController),
+                          const SizedBox(height: 24),
+                          _buildAccessibilitySettingsCard(
+                              context, settingsController),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          if (isDesktop || isTablet)
                             Expanded(
                               child: CosmicButton(
-                                label: context.tr('save'),
-                                type: CosmicButtonType.primary,
+                                label: '기본값 복원',
+                                type: CosmicButtonType.secondary,
                                 size: isDesktop
                                     ? CosmicButtonSize.large
                                     : CosmicButtonSize.medium,
-                                icon: Icons.save,
+                                icon: Icons.restore,
                                 isFullWidth: true,
                                 onPressed: () async {
-                                  final navigator = Navigator.of(context);
-                                  await settingsController.saveSettings();
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content:
-                                            Text(context.tr('settings_saved')),
-                                        backgroundColor: AppColors.success,
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
-                                  }
-                                  navigator.pop();
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // 모바일에서는 재설정 버튼 하단에 추가
-                        if (!isDesktop && !isTablet)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: CosmicButton(
-                              label: context.tr('reset_defaults'),
-                              type: CosmicButtonType.secondary,
-                              size: CosmicButtonSize.medium,
-                              icon: Icons.restore,
-                              isFullWidth: true,
-                              onPressed: () async {
-                                // 재설정 확인 대화상자 표시
-                                final confirmed =
-                                    await _showResetConfirmDialog(context);
-                                if (confirmed) {
                                   await settingsController.resetToDefaults();
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content:
-                                            Text(context.tr('reset_success')),
+                                      const SnackBar(
+                                        content: Text('설정이 초기화되었습니다'),
                                         backgroundColor: AppColors.success,
                                       ),
                                     );
                                   }
+                                },
+                              ),
+                            ),
+                          if (isDesktop || isTablet) const SizedBox(width: 16),
+                          Expanded(
+                            child: CosmicButton(
+                              label: '저장',
+                              type: CosmicButtonType.primary,
+                              size: isDesktop
+                                  ? CosmicButtonSize.large
+                                  : CosmicButtonSize.medium,
+                              icon: Icons.save,
+                              isFullWidth: true,
+                              onPressed: () async {
+                                final navigator = Navigator.of(context);
+                                await settingsController.saveSettings();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('설정이 저장되었습니다'),
+                                      backgroundColor: AppColors.success,
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
                                 }
+                                navigator.pop();
                               },
                             ),
                           ),
-                      ],
-                    ),
+                        ],
+                      ),
+                      if (!isDesktop && !isTablet)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: CosmicButton(
+                            label: '기본값 복원',
+                            type: CosmicButtonType.secondary,
+                            size: CosmicButtonSize.medium,
+                            icon: Icons.restore,
+                            isFullWidth: true,
+                            onPressed: () async {
+                              await settingsController.resetToDefaults();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('설정이 초기화되었습니다'),
+                                    backgroundColor: AppColors.success,
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 게임 설정 카드
-  Widget _buildGameSettingsCard(
-    BuildContext context,
-    SettingsController settingsController,
-  ) {
-    return CosmicCard(
-      title: context.tr('game_settings'),
-      titleIcon: Icons.sports_esports,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 타자연습 언어 설정
-          _buildSettingSection(
-            context: context,
-            title: context.tr('typing_language'),
-            icon: Icons.keyboard,
-            child: _buildTypingLanguageSelector(context, settingsController),
-          ),
-
-          const Divider(color: AppColors.borderColor),
-
-          // 난이도 설정
-          _buildSettingSection(
-            context: context,
-            title: context.tr('difficulty'),
-            icon: Icons.stacked_line_chart,
-            child: _buildDifficultySelector(context, settingsController),
-          ),
-
-          const Divider(color: AppColors.borderColor),
-
-          // 타이머 설정
-          _buildSettingSection(
-            context: context,
-            title: context.tr('timer_seconds'),
-            icon: Icons.timer,
-            child: _buildTimerSlider(context, settingsController),
           ),
         ],
       ),
     );
   }
 
-  // 앱 설정 카드
-  Widget _buildAppSettingsCard(
-    BuildContext context,
-    SettingsController settingsController,
-  ) {
+  Widget _buildAdPlaceholder(BuildContext context) {
+    final isDesktop = ResponsiveHelper.isDesktop(context);
+    final isTablet = ResponsiveHelper.isTablet(context);
+
+    return Container(
+      height: isDesktop ? 100 : (isTablet ? 80 : 60),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withOpacity(0.1),
+            AppColors.secondary.withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.borderColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          '광고 영역',
+          style: AppTextStyles.bodyMedium(context).copyWith(
+            color: AppColors.textMuted,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGameSettingsCard(
+      BuildContext context, SettingsController settingsController) {
     return CosmicCard(
-      title: context.tr('app_settings'),
+      title: '게임 설정',
+      titleIcon: Icons.games,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSettingSection(
+            context: context,
+            title: '난이도',
+            icon: Icons.tune,
+            child: _buildDifficultySelector(context, settingsController),
+          ),
+          const Divider(color: AppColors.borderColor),
+          _buildSettingSection(
+            context: context,
+            title: '타이머 시간',
+            icon: Icons.timer,
+            child: _buildTimerSlider(context, settingsController),
+          ),
+          const Divider(color: AppColors.borderColor),
+          _buildSettingSection(
+            context: context,
+            title: '타자연습 언어',
+            icon: Icons.keyboard,
+            child: _buildTypingLanguageSelector(context, settingsController),
+          ),
+          const Divider(color: AppColors.borderColor),
+          _buildSettingSwitch(
+            context,
+            title: '파티클 효과',
+            icon: Icons.auto_awesome,
+            value: settingsController.particleEffectsEnabled,
+            onChanged: (value) {
+              settingsController.setParticleEffectsEnabled(value);
+            },
+          ),
+          _buildSettingSwitch(
+            context,
+            title: '타이핑 효과',
+            icon: Icons.keyboard_alt,
+            value: settingsController.typingEffectsEnabled,
+            onChanged: (value) {
+              settingsController.setTypingEffectsEnabled(value);
+            },
+          ),
+          _buildSettingSwitch(
+            context,
+            title: '타이핑 사운드',
+            icon: Icons.keyboard_voice,
+            value: settingsController.typingSoundEnabled,
+            onChanged: (value) {
+              settingsController.setTypingSoundEnabled(value);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppSettingsCard(
+      BuildContext context, SettingsController settingsController) {
+    return CosmicCard(
+      title: '앱 설정',
       titleIcon: Icons.settings,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 테마 설정
-          _buildSettingSection(
-            context: context,
-            title: context.tr('theme'),
-            icon: Icons.dark_mode,
-            child: _buildThemeSelector(context, settingsController),
-          ),
-
-          const Divider(color: AppColors.borderColor),
-
-          // 효과음 설정
           _buildSettingSwitch(
             context,
-            title: context.tr('sound_effects'),
+            title: '효과음',
             icon: Icons.volume_up,
             value: settingsController.soundEnabled,
             onChanged: (value) {
               settingsController.soundEnabled = value;
             },
           ),
-
-          // 효과음이 활성화된 경우에만 볼륨 슬라이더 표시
           if (settingsController.soundEnabled)
             Padding(
               padding:
@@ -324,21 +290,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 label: '${(settingsController.soundVolume * 100).round()}%',
               ),
             ),
-
           const Divider(color: AppColors.borderColor),
-
-          // 음악 설정
           _buildSettingSwitch(
             context,
-            title: context.tr('background_music'),
+            title: '배경음악',
             icon: Icons.music_note,
             value: settingsController.musicEnabled,
             onChanged: (value) {
               settingsController.musicEnabled = value;
             },
           ),
-
-          // 음악이 활성화된 경우에만 볼륨 슬라이더 표시
           if (settingsController.musicEnabled)
             Padding(
               padding:
@@ -357,44 +318,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // 접근성 설정 카드
   Widget _buildAccessibilitySettingsCard(
-    BuildContext context,
-    SettingsController settingsController,
-  ) {
+      BuildContext context, SettingsController settingsController) {
     return CosmicCard(
-      title: context.tr('accessibility'),
+      title: '접근성',
       titleIcon: Icons.accessibility_new,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 하이 콘트라스트 모드
           _buildSettingSwitch(
             context,
-            title: context.tr('high_contrast'),
+            title: '고대비 모드',
             icon: Icons.contrast,
             value: settingsController.highContrastMode,
             onChanged: (value) {
               settingsController.highContrastMode = value;
             },
           ),
-
           const Divider(color: AppColors.borderColor),
-
-          // 언어 설정
           _buildSettingSection(
             context: context,
-            title: context.tr('language'),
+            title: '언어',
             icon: Icons.language,
             child: _buildLanguageSelector(context, settingsController),
           ),
-
           const Divider(color: AppColors.borderColor),
-
-          // 글꼴 크기 설정
           _buildSettingSection(
             context: context,
-            title: context.tr('font_size'),
+            title: '글꼴 크기',
             icon: Icons.format_size,
             child: _buildFontSizeSlider(context, settingsController),
           ),
@@ -403,7 +354,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // 설정 섹션 기본 위젯
   Widget _buildSettingSection({
     required BuildContext context,
     required String title,
@@ -417,16 +367,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                size: 20,
-                color: AppColors.primary,
-              ),
+              Icon(icon, size: 20, color: AppColors.primary),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: AppTextStyles.bodyLarge(context),
-              ),
+              Text(title, style: AppTextStyles.bodyLarge(context)),
             ],
           ),
           const SizedBox(height: 16),
@@ -436,7 +379,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // 스위치 설정 항목
   Widget _buildSettingSwitch(
     BuildContext context, {
     required String title,
@@ -448,17 +390,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: AppColors.primary,
-          ),
+          Icon(icon, size: 20, color: AppColors.primary),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              title,
-              style: AppTextStyles.bodyLarge(context),
-            ),
+            child: Text(title, style: AppTextStyles.bodyLarge(context)),
           ),
           Switch(
             value: value,
@@ -470,29 +405,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // 난이도 선택 위젯
   Widget _buildDifficultySelector(
-    BuildContext context,
-    SettingsController settingsController,
-  ) {
-    final isDesktop = ResponsiveHelper.isDesktop(context);
-
+      BuildContext context, SettingsController settingsController) {
     return SegmentedButton<DifficultyLevel>(
-      segments: [
+      segments: const [
         ButtonSegment<DifficultyLevel>(
           value: DifficultyLevel.easy,
-          label: Text(context.tr('easy')),
-          icon: const Icon(Icons.sentiment_satisfied),
+          label: Text('쉬움'),
+          icon: Icon(Icons.sentiment_satisfied),
         ),
         ButtonSegment<DifficultyLevel>(
           value: DifficultyLevel.medium,
-          label: Text(context.tr('medium')),
-          icon: const Icon(Icons.sentiment_neutral),
+          label: Text('보통'),
+          icon: Icon(Icons.sentiment_neutral),
         ),
         ButtonSegment<DifficultyLevel>(
           value: DifficultyLevel.hard,
-          label: Text(context.tr('hard')),
-          icon: const Icon(Icons.sentiment_dissatisfied),
+          label: Text('어려움'),
+          icon: Icon(Icons.sentiment_dissatisfied),
         ),
       ],
       selected: {settingsController.difficulty},
@@ -514,11 +444,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // 타이머 슬라이더 위젯
   Widget _buildTimerSlider(
-    BuildContext context,
-    SettingsController settingsController,
-  ) {
+      BuildContext context, SettingsController settingsController) {
     return Column(
       children: [
         Slider(
@@ -528,17 +455,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           divisions: 7,
           label: '${settingsController.timerDuration}초',
           onChanged: (value) {
-            settingsController.timerDuration = value.toInt();
+            settingsController.timerDuration = value.round();
           },
           activeColor: AppColors.primary,
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              '15초',
-              style: AppTextStyles.bodySmall(context),
-            ),
+            Text('15초', style: AppTextStyles.bodySmall(context)),
             Text(
               '${settingsController.timerDuration}초',
               style: AppTextStyles.bodyMedium(context).copyWith(
@@ -546,97 +470,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(
-              '120초',
-              style: AppTextStyles.bodySmall(context),
-            ),
+            Text('120초', style: AppTextStyles.bodySmall(context)),
           ],
         ),
       ],
     );
   }
 
-  // 테마 선택 위젯
-  Widget _buildThemeSelector(
-    BuildContext context,
-    SettingsController settingsController,
-  ) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildThemeOption(
-            context,
-            title: context.tr('light'),
-            icon: Icons.light_mode,
-            isSelected: !settingsController.darkThemeEnabled,
-            onTap: () {
-              settingsController.darkThemeEnabled = false;
-            },
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildThemeOption(
-            context,
-            title: context.tr('dark'),
-            icon: Icons.dark_mode,
-            isSelected: settingsController.darkThemeEnabled,
-            onTap: () {
-              settingsController.darkThemeEnabled = true;
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // 테마 옵션 위젯
-  Widget _buildThemeOption(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withOpacity(0.1)
-              : AppColors.backgroundLighter,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderColor,
-            width: 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-              size: 24,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: AppTextStyles.bodyMedium(context).copyWith(
-                color: isSelected ? AppColors.primary : AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // 글꼴 크기 슬라이더 위젯
   Widget _buildFontSizeSlider(
-    BuildContext context,
-    SettingsController settingsController,
-  ) {
+      BuildContext context, SettingsController settingsController) {
     return Column(
       children: [
         Slider(
@@ -654,10 +496,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              context.tr('small'),
-              style: AppTextStyles.bodySmall(context),
-            ),
+            Text('작게', style: AppTextStyles.bodySmall(context)),
             Text(
               '${((settingsController.fontSize - 0.8) * 100 / 0.6).round()}%',
               style: AppTextStyles.bodyMedium(context).copyWith(
@@ -665,21 +504,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(
-              context.tr('large'),
-              style: AppTextStyles.bodySmall(context),
-            ),
+            Text('크게', style: AppTextStyles.bodySmall(context)),
           ],
         ),
       ],
     );
   }
 
-  // 언어 선택 위젯
   Widget _buildLanguageSelector(
-    BuildContext context,
-    SettingsController settingsController,
-  ) {
+      BuildContext context, SettingsController settingsController) {
     return SegmentedButton<LanguageOption>(
       segments: const [
         ButtonSegment<LanguageOption>(
@@ -712,7 +545,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // 볼륨 슬라이더 위젯
   Widget _buildVolumeSlider(
     BuildContext context, {
     required double value,
@@ -721,11 +553,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return Row(
       children: [
-        const Icon(
-          Icons.volume_down,
-          size: 18,
-          color: AppColors.textSecondary,
-        ),
+        const Icon(Icons.volume_down, size: 18, color: AppColors.textSecondary),
         Expanded(
           child: Slider(
             value: value,
@@ -737,36 +565,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             activeColor: AppColors.primary,
           ),
         ),
-        const Icon(
-          Icons.volume_up,
-          size: 18,
-          color: AppColors.textSecondary,
-        ),
+        const Icon(Icons.volume_up, size: 18, color: AppColors.textSecondary),
       ],
     );
   }
 
-  // 타자연습 언어 선택 위젯
   Widget _buildTypingLanguageSelector(
-    BuildContext context,
-    SettingsController settingsController,
-  ) {
+      BuildContext context, SettingsController settingsController) {
     return SegmentedButton<LanguageOption>(
-      segments: [
+      segments: const [
         ButtonSegment<LanguageOption>(
           value: LanguageOption.korean,
-          label: Text(context.tr('korean_typing')),
-          icon: const Icon(Icons.language),
+          label: Text('한국어 타자'),
+          icon: Icon(Icons.language),
         ),
         ButtonSegment<LanguageOption>(
           value: LanguageOption.english,
-          label: Text(context.tr('english_typing')),
-          icon: const Icon(Icons.language),
-        ),
-        ButtonSegment<LanguageOption>(
-          value: LanguageOption.mixedKoreanEnglish,
-          label: Text(context.tr('mixed_typing')),
-          icon: const Icon(Icons.language),
+          label: Text('영어 타자'),
+          icon: Icon(Icons.language),
         ),
       ],
       selected: {settingsController.typingLanguage},
@@ -786,113 +602,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
-  }
-
-  // 설정 재설정 확인 대화상자
-  Future<bool> _showResetConfirmDialog(BuildContext context) async {
-    return await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              backgroundColor: AppColors.backgroundLighter,
-              title: Text(
-                context.tr('reset_confirm_title'),
-                style: AppTextStyles.bodyLarge(context).copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              content: Text(
-                context.tr('reset_confirm_message'),
-                style: AppTextStyles.bodyMedium(context),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  child: Text(
-                    context.tr('cancel'),
-                    style: AppTextStyles.bodyMedium(context).copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop(false);
-                  },
-                ),
-                TextButton(
-                  child: Text(
-                    context.tr('reset'),
-                    style: AppTextStyles.bodyMedium(context).copyWith(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop(true);
-                  },
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
-  }
-
-  // 저장되지 않은 변경 사항이 있는지 확인하는 메서드
-  Future<bool> _onWillPop(
-      BuildContext context, SettingsController settingsController) async {
-    if (settingsController.hasUnsavedChanges) {
-      final shouldProceed = await _showUnsavedChangesDialog(context);
-      return shouldProceed;
-    }
-    return true;
-  }
-
-  // 저장되지 않은 변경 사항이 있는지 확인하는 대화상자
-  Future<bool> _showUnsavedChangesDialog(BuildContext context) async {
-    return await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              backgroundColor: AppColors.backgroundLighter,
-              title: Text(
-                context.tr('unsaved_changes_title'),
-                style: AppTextStyles.bodyLarge(context).copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              content: Text(
-                context.tr('unsaved_changes_message'),
-                style: AppTextStyles.bodyMedium(context),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  child: Text(
-                    context.tr('cancel'),
-                    style: AppTextStyles.bodyMedium(context).copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop(false);
-                  },
-                ),
-                TextButton(
-                  child: Text(
-                    context.tr('proceed'),
-                    style: AppTextStyles.bodyMedium(context).copyWith(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop(true);
-                  },
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
   }
 }

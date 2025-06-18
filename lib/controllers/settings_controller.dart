@@ -33,7 +33,6 @@ class SettingsController with ChangeNotifier {
   static const String _keyFontSize = 'font_size';
   static const String _keyDifficulty = 'difficulty';
   static const String _keyTimeChallengeDuration = 'time_challenge_duration';
-  static const String _keyDarkThemeEnabled = 'dark_theme_enabled';
   static const String _keyHighContrastMode = 'high_contrast_mode';
   static const String _keySoundEnabled = 'sound_enabled';
   static const String _keyMusicEnabled = 'music_enabled';
@@ -51,7 +50,6 @@ class SettingsController with ChangeNotifier {
   double _fontSize = 1.0;
   DifficultyLevel _difficulty = DifficultyLevel.medium;
   int _timeChallengeDuration = 60;
-  bool _darkThemeEnabled = true;
   bool _highContrastMode = false;
   bool _soundEnabled = true;
   bool _musicEnabled = true;
@@ -116,7 +114,6 @@ class SettingsController with ChangeNotifier {
         _prefs.getBool(_keyParticleEffectsEnabled) ?? true;
     _typingEffectsEnabled = _prefs.getBool(_keyTypingEffectsEnabled) ?? true;
     _fontSize = _prefs.getDouble(_keyFontSize) ?? 1.0;
-    _darkThemeEnabled = _prefs.getBool(_keyDarkThemeEnabled) ?? true;
     _highContrastMode = _prefs.getBool(_keyHighContrastMode) ?? false;
     _soundEnabled = _prefs.getBool(_keySoundEnabled) ?? true;
     _musicEnabled = _prefs.getBool(_keyMusicEnabled) ?? true;
@@ -141,11 +138,7 @@ class SettingsController with ChangeNotifier {
     notifyListeners();
   }
 
-  // 설정 저장 (비동기 호출용)
-  void _saveSettingsAsync() {
-    // 백그라운드에서 저장
-    _saveSettings();
-  }
+
 
   // 설정 저장
   Future<void> _saveSettings() async {
@@ -157,7 +150,6 @@ class SettingsController with ChangeNotifier {
     await _prefs.setDouble(_keyFontSize, _fontSize);
     await _prefs.setInt(_keyDifficulty, _difficulty.index);
     await _prefs.setInt(_keyTimeChallengeDuration, _timeChallengeDuration);
-    await _prefs.setBool(_keyDarkThemeEnabled, _darkThemeEnabled);
     await _prefs.setBool(_keyHighContrastMode, _highContrastMode);
     await _prefs.setBool(_keySoundEnabled, _soundEnabled);
     await _prefs.setBool(_keyMusicEnabled, _musicEnabled);
@@ -178,7 +170,6 @@ class SettingsController with ChangeNotifier {
     _difficulty = DifficultyLevel.medium;
     _timeChallengeDuration = 60;
     _timerDuration = 60;
-    _darkThemeEnabled = true;
     _highContrastMode = false;
     _soundEnabled = true;
     _musicEnabled = true;
@@ -279,12 +270,6 @@ class SettingsController with ChangeNotifier {
     notifyListeners();
   }
 
-  bool get darkThemeEnabled => _darkThemeEnabled;
-  set darkThemeEnabled(bool enabled) {
-    _darkThemeEnabled = enabled;
-    notifyListeners();
-  }
-
   bool get highContrastMode => _highContrastMode;
   set highContrastMode(bool value) {
     _highContrastMode = value;
@@ -319,9 +304,8 @@ class SettingsController with ChangeNotifier {
     notifyListeners();
   }
 
-  // 테마 모드 가져오기
-  ThemeMode get themeMode =>
-      _darkThemeEnabled ? ThemeMode.dark : ThemeMode.light;
+  // 테마 모드 가져오기 (단일 우주 테마 사용)
+  ThemeMode get themeMode => ThemeMode.dark;
 
   // [getter/setter] - TimerDuration
   int get timerDuration => _timerDuration;
@@ -353,7 +337,6 @@ class SettingsController with ChangeNotifier {
     print('언어: $_language');
     print('타자연습 언어: $_typingLanguage');
     print('글꼴 크기: $_fontSize');
-    print('다크 테마: $_darkThemeEnabled');
     print('고대비 모드: $_highContrastMode');
     print('배경음악: $_musicEnabled (볼륨: $_musicVolume)');
     print('효과음: $_soundEnabled (볼륨: $_soundEffectsVolume)');
@@ -376,7 +359,6 @@ class SettingsController with ChangeNotifier {
     print('언어: ${prefs.getInt(_keyLanguage)}');
     print('타자연습 언어: ${prefs.getInt(_keyTypingLanguage)}');
     print('글꼴 크기: ${prefs.getDouble(_keyFontSize)}');
-    print('다크 테마: ${prefs.getBool(_keyDarkThemeEnabled)}');
     print('고대비 모드: ${prefs.getBool(_keyHighContrastMode)}');
     print(
         '배경음악: ${prefs.getBool(_keyMusicEnabled)} (볼륨: ${prefs.getDouble(_keyMusicVolume)})');

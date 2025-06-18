@@ -1028,6 +1028,35 @@ class _SpaceDefenseScreenState extends State<SpaceDefenseScreen>
                 textAlign: TextAlign.center,
               ),
             ),
+
+            const SizedBox(height: 24),
+
+            // 광고 placeholder 추가
+            Container(
+              height: 80,
+              width: double.infinity,
+              constraints: const BoxConstraints(maxWidth: 400),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundLighter.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  'Advertisement',
+                  style: TextStyle(
+                    color: AppColors.primary.withOpacity(0.5),
+                    fontSize: 12,
+                    fontFamily: 'Rajdhani',
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
           ],
         ),
         actions: [

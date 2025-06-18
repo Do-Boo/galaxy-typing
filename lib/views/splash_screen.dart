@@ -638,6 +638,32 @@ class _SplashScreenState extends State<SplashScreen>
 
                       const SizedBox(height: 20),
 
+                      // 광고 placeholder 추가
+                      Container(
+                        height: 60,
+                        width: 280,
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Advertisement',
+                            style: TextStyle(
+                              color: AppColors.primary.withOpacity(0.3),
+                              fontSize: 10,
+                              fontFamily: 'Rajdhani',
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
                       // 애니메이션 점들
                       AnimatedBuilder(
                         animation: _dotsController,

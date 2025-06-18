@@ -71,80 +71,104 @@ class _MainScreenState extends State<MainScreen> {
             SafeArea(
               child: ResponsiveHelper.centeredContent(
                 context: context,
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Padding(
-                    padding: screenPadding,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(height: isDesktop ? 40 : 20),
+                child: Scrollbar(
+                  thumbVisibility: false, // 스크롤바 숨김
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: screenPadding,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(height: isDesktop ? 20 : 10),
 
-                        // 로고 및 제목
-                        Container(
-                          alignment: Alignment.center,
-                          child: Column(
-                            children: [
-                              // 반짝이는 로고 텍스트
-                              CosmicPulsingText(
-                                text: 'GALAXY TYPING',
-                                fontSize: isDesktop ? 42 : (isTablet ? 36 : 30),
-                                enablePulsing: true,
-                              ),
-                              const SizedBox(height: 8),
-                              // 부제목
-                              Text(
-                                '은하계를 누비는 타자 연습',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: isDesktop ? 18 : 16,
-                                  letterSpacing: 2,
-                                  fontWeight: FontWeight.w500,
+                          // 로고 및 제목
+                          Container(
+                            alignment: Alignment.center,
+                            child: Column(
+                              children: [
+                                // 반짝이는 로고 텍스트
+                                CosmicPulsingText(
+                                  text: 'GALAXY TYPING',
+                                  fontSize:
+                                      isDesktop ? 36 : (isTablet ? 32 : 26),
+                                  enablePulsing: true,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: isDesktop ? 60 : 40),
-
-                        // 반응형 레이아웃 - 데스크톱에서는 통계 카드와 메뉴를 나란히 배치
-                        if (isDesktop)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // 통계 요약 카드 (데스크톱에서는 왼쪽에 배치)
-                              Expanded(
-                                flex: 3,
-                                child:
-                                    _buildStatsCard(context, statsController),
-                              ),
-                              const SizedBox(width: 24),
-                              // 게임 모드 컨테이너 (데스크톱에서는 오른쪽에 배치)
-                              Expanded(
-                                flex: 5,
-                                child: _buildGameModes(context),
-                              ),
-                            ],
-                          )
-                        else
-                          Column(
-                            children: [
-                              // 통계 요약 카드
-                              _buildStatsCard(context, statsController),
-                              const SizedBox(height: 30),
-                              // 게임 모드 컨테이너
-                              _buildGameModes(context),
-                            ],
+                                const SizedBox(height: 6),
+                                // 부제목
+                                Text(
+                                  '은하계를 누비는 타자 연습',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: isDesktop ? 16 : 14,
+                                    letterSpacing: 2,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
 
-                        const SizedBox(height: 30),
+                          SizedBox(height: isDesktop ? 30 : 20),
 
-                        // 하단 버튼 행
-                        _buildBottomButtons(context, settingsController),
+                          // 반응형 레이아웃 - 데스크톱에서는 통계 카드와 메뉴를 나란히 배치
+                          if (isDesktop)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // 메인 콘텐츠 영역 (통계 + 게임 모드)
+                                Expanded(
+                                  flex: 7,
+                                  child: Column(
+                                    children: [
+                                      // 통계 카드
+                                      _buildStatsCard(context, statsController),
+                                      const SizedBox(height: 20),
+                                      // 게임 모드
+                                      _buildGameModes(context),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 24),
+                                // 사이드바 (광고 영역)
+                                Expanded(
+                                  flex: 3,
+                                  child: Column(
+                                    children: [
+                                      // 사이드바 광고 placeholder
+                                      _buildSidebarAdPlaceholder(context),
+                                      const SizedBox(height: 20),
+                                      // 추가 사이드바 광고 placeholder
+                                      _buildSidebarAdPlaceholder(context,
+                                          isSecondary: true),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            Column(
+                              children: [
+                                // 통계 카드
+                                _buildStatsCard(context, statsController),
+                                const SizedBox(height: 16),
+                                // 모바일 광고 placeholder
+                                _buildAdPlaceholder(context),
+                                const SizedBox(height: 20),
+                                // 게임 모드
+                                _buildGameModes(context),
+                                const SizedBox(height: 16),
+                                // 하단 광고 placeholder (모바일만)
+                                _buildBottomAdPlaceholder(context),
+                              ],
+                            ),
 
-                        const SizedBox(height: 20),
-                      ],
+                          // 하단 버튼 행 (모든 화면 크기에서 공통)
+                          const SizedBox(height: 16),
+                          _buildBottomButtons(context, settingsController),
+                          const SizedBox(height: 10),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -232,66 +256,38 @@ class _MainScreenState extends State<MainScreen> {
 
             const Divider(color: AppColors.borderColor, height: 30),
 
-            // 통계 내용
-            isDesktop
-                ? Column(
-                    children: [
-                      _buildStatItem(
-                        context,
-                        label: '평균 CPM',
-                        value: statsController.averageCpm.toString(),
-                        icon: Icons.speed,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStatItem(
-                        context,
-                        label: '정확도',
-                        value: '${statsController.accuracy.round()}%',
-                        icon: Icons.check_circle_outline,
-                        color: AppColors.success,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStatItem(
-                        context,
-                        label: '최고 웨이브',
-                        value: statsController.highestWave.toString(),
-                        icon: Icons.waves,
-                        color: AppColors.secondary,
-                      ),
-                    ],
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildStatItem(
-                        context,
-                        label: '평균 CPM',
-                        value: statsController.averageCpm.toString(),
-                        icon: Icons.speed,
-                        color: AppColors.primary,
-                        horizontal: true,
-                      ),
-                      _verticalDivider(),
-                      _buildStatItem(
-                        context,
-                        label: '정확도',
-                        value: '${statsController.accuracy.round()}%',
-                        icon: Icons.check_circle_outline,
-                        color: AppColors.success,
-                        horizontal: true,
-                      ),
-                      _verticalDivider(),
-                      _buildStatItem(
-                        context,
-                        label: '최고 웨이브',
-                        value: statsController.highestWave.toString(),
-                        icon: Icons.waves,
-                        color: AppColors.secondary,
-                        horizontal: true,
-                      ),
-                    ],
-                  ),
+            // 통계 내용 - 모든 화면 크기에서 가로 배치
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatItem(
+                  context,
+                  label: '평균 CPM',
+                  value: statsController.averageCpm.toString(),
+                  icon: Icons.speed,
+                  color: AppColors.primary,
+                  horizontal: true,
+                ),
+                _verticalDivider(),
+                _buildStatItem(
+                  context,
+                  label: '정확도',
+                  value: '${statsController.accuracy.round()}%',
+                  icon: Icons.check_circle_outline,
+                  color: AppColors.success,
+                  horizontal: true,
+                ),
+                _verticalDivider(),
+                _buildStatItem(
+                  context,
+                  label: '최고 웨이브',
+                  value: statsController.highestWave.toString(),
+                  icon: Icons.waves,
+                  color: AppColors.secondary,
+                  horizontal: true,
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -824,6 +820,138 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // 광고 placeholder 위젯
+  Widget _buildAdPlaceholder(BuildContext context) {
+    final isDesktop = ResponsiveHelper.isDesktop(context);
+    final isTablet = ResponsiveHelper.isTablet(context);
+
+    return Container(
+      width: double.infinity,
+      height: isDesktop ? 120 : (isTablet ? 100 : 80),
+      margin: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 32 : (isTablet ? 24 : 16),
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLighter.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.ads_click,
+              color: AppColors.primary.withOpacity(0.5),
+              size: isDesktop ? 32 : 24,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Advertisement',
+              style: TextStyle(
+                color: AppColors.primary.withOpacity(0.5),
+                fontSize: isDesktop ? 14 : 12,
+                fontFamily: 'Rajdhani',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 하단 광고 placeholder 위젯
+  Widget _buildBottomAdPlaceholder(BuildContext context) {
+    final isDesktop = ResponsiveHelper.isDesktop(context);
+    final isTablet = ResponsiveHelper.isTablet(context);
+
+    return Container(
+      width: double.infinity,
+      height: isDesktop ? 100 : (isTablet ? 80 : 60),
+      margin: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 32 : (isTablet ? 24 : 16),
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLighter.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          'Banner Advertisement',
+          style: TextStyle(
+            color: AppColors.primary.withOpacity(0.4),
+            fontSize: isDesktop ? 12 : 10,
+            fontFamily: 'Rajdhani',
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 사이드바 광고 placeholder 위젯
+  Widget _buildSidebarAdPlaceholder(BuildContext context,
+      {bool isSecondary = false}) {
+    final isDesktop = ResponsiveHelper.isDesktop(context);
+
+    return Container(
+      width: double.infinity,
+      height: isSecondary ? 200 : 250,
+      decoration: BoxDecoration(
+        color: AppColors.backgroundLighter.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSecondary ? Icons.campaign : Icons.ads_click,
+              color: AppColors.primary.withOpacity(0.5),
+              size: isDesktop ? 32 : 24,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isSecondary ? 'Promotion' : 'Advertisement',
+              style: TextStyle(
+                color: AppColors.primary.withOpacity(0.5),
+                fontSize: isDesktop ? 14 : 12,
+                fontFamily: 'Rajdhani',
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isSecondary ? '300x200' : '300x250',
+              style: TextStyle(
+                color: AppColors.primary.withOpacity(0.3),
+                fontSize: isDesktop ? 10 : 8,
+                fontFamily: 'Rajdhani',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
