@@ -15,26 +15,18 @@
             "use": "@vercel/static"
         }
     ],
-    "routes": [
+    "rewrites": [
         {
-            "src": "/",
-            "dest": "/galaxy_typing_landing.html"
+            "source": "/",
+            "destination": "/galaxy_typing_landing.html"
         },
         {
-            "src": "/landing",
-            "dest": "/galaxy_typing_landing.html"
+            "source": "/landing",
+            "destination": "/galaxy_typing_landing.html"
         },
         {
-            "src": "/resizer",
-            "dest": "/image_resizer.html"
-        },
-        {
-            "src": "/screenshots/(.*)",
-            "dest": "/galaxy_typing/screenshots/$1"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/$1"
+            "source": "/resizer",
+            "destination": "/image_resizer.html"
         }
     ],
     "headers": [
@@ -64,5 +56,7 @@
                 }
             ]
         }
-    ]
+    ],
+    "cleanUrls": true,
+    "trailingSlash": false
 }
