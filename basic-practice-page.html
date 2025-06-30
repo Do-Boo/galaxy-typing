@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>우주 타자 - 기본 연습</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- 공통 CSS 파일 링크 (실제 경로로 수정해주세요) -->
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        /* 페이지 전용 스타일 */
+        .typing-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            margin: var(--spacing-lg) 0;
+        }
+
+        .typing-display {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .current-word {
+            font-size: 1.4rem;
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-md);
+            min-height: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .current-word {
+                font-size: 1.8rem;
+            }
+        }
+
+        .feedback-area {
+            font-size: 1.6rem;
+            line-height: 1.5;
+            text-align: center;
+            min-height: 6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-md);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border-color);
+            margin-bottom: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        @media (min-width: 768px) {
+            .feedback-area {
+                font-size: 2rem;
+                padding: var(--spacing-lg);
+            }
+        }
+
+        .input-container {
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .typing-input {
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid var(--primary);
+            border-radius: var(--border-radius-md);
+            color: var(--text-primary);
+            padding: 15px;
+            font-size: 1.2rem;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(76, 201, 240, 0.3);
+        }
+
+        .typing-input:focus {
+            outline: none;
+            box-shadow: 0 0 20px rgba(76, 201, 240, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-sm);
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .stat-box {
+            background: rgba(10, 10, 25, 0.5);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-radius: var(--border-radius-md);
+            padding: var(--spacing-md);
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .difficulty-selector {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        .difficulty-btn {
+            padding: 8px 15px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .difficulty-btn.active {
+            background: var(--primary);
+            color: var(--background);
+            border-color: var(--primary);
+        }
+
+        .nav-buttons {
+            position: absolute;
+            top: var(--spacing-md);
+            left: var(--spacing-md);
+            z-index: 5;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .back-btn:hover {
+            background: rgba(76, 201, 240, 0.1);
+            border-color: var(--primary);
+        }
+
+        /* 타이핑 캐릭터 스타일 수정 */
+        .typing-character {
+            display: inline-block;
+            padding: 0 2px;
+            min-width: 0.8ch;
+            text-align: center;
+            transition: all 0.1s ease;
+        }
+
+        .instructions {
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 별 배경 -->
+    <div class="starfield"></div>
+    <div class="gradient-bg"></div>
+
+    <!-- 앱 컨테이너 -->
+    <div class="container flex flex-col" style="min-height: 100vh;">
+        <!-- 네비게이션 버튼 -->
+        <div class="nav-buttons">
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                ← 메인으로
+            </button>
+        </div>
+
+        <!-- 페이지 헤더 -->
+        <div class="text-center my-md">
+            <h1 class="logo">BASIC TYPING</h1>
+            <p class="tagline">기본 타자 연습</p>
+        </div>
+
+        <!-- 통계 바 -->
+        <div class="stats-bar">
+            <div class="stat-box">
+                <div class="stat-value" id="accuracy">100<span style="font-size: 1rem;">%</span></div>
+                <div class="stat-label">정확도</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="cpm">0</div>
+                <div class="stat-label">CPM</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="words">0</div>
+                <div class="stat-label">단어</div>
+            </div>
+        </div>
+
+        <!-- 타이핑 영역 -->
+        <div class="typing-container">
+            <div class="typing-display">
+                <div class="current-word" id="target-word">시작 버튼을 눌러 연습을 시작하세요</div>
+                <div class="feedback-area" id="feedback-area"></div>
+            </div>
+
+            <p class="instructions">위의 단어를 입력하세요. 정확하게 입력하면 다음 단어로 자동 이동합니다.</p>
+
+            <!-- 입력 필드 -->
+            <div class="input-container">
+                <input type="text" id="typing-input" class="typing-input" placeholder="여기에 타이핑하세요" disabled
+                    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+
+            <!-- 난이도 선택 -->
+            <div class="difficulty-selector">
+                <button class="difficulty-btn active" data-difficulty="easy">초급</button>
+                <button class="difficulty-btn" data-difficulty="medium">중급</button>
+                <button class="difficulty-btn" data-difficulty="hard">고급</button>
+            </div>
+
+            <!-- 컨트롤 버튼 -->
+            <div class="controls">
+                <button class="btn btn-primary" id="start-btn">시작</button>
+                <button class="btn btn-outline" id="reset-btn" disabled>초기화</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM 요소
+        const targetWordElement = document.getElementById('target-word');
+        const feedbackArea = document.getElementById('feedback-area');
+        const typingInput = document.getElementById('typing-input');
+        const accuracyElement = document.getElementById('accuracy');
+        const cpmElement = document.getElementById('cpm');
+        const wordsElement = document.getElementById('words');
+        const startButton = document.getElementById('start-btn');
+        const resetButton = document.getElementById('reset-btn');
+        const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+
+        // 게임 상태 변수
+        let isPlaying = false;
+        let currentWord = '';
+        let wordCount = 0;
+        let correctChars = 0;
+        let totalChars = 0;
+        let startTime = null;
+        let currentDifficulty = 'easy';
+
+        // 난이도별 단어 목록
+        const wordLists = {
+            easy: [
+                '우주', '별', '행성', '달', '지구', '태양', '빛', '밤', '낮', '하늘',
+                '별자리', '은하', '무중력', '로켓', '탐사', '발사', '궤도', '착륙',
+                '기지', '우주인', '신호', '탐험', '관측', '망원경', '별똥별', '혜성',
+                '유성', '항해', '성운', '중력', '우주복', '위성', '발견', '연구'
+            ],
+            medium: [
+                '우주선', '천문학', '블랙홀', '인공위성', '우주정거장', '초신성', '외계인',
+                '소행성', '왜성', '중성자별', '퀘이사', '초기우주', '빅뱅', '암흑물질',
+                '암흑에너지', '성간물질', '엑소플래닛', '행성간', '적색거성', '백색왜성',
+                '은하단', '은하군', '천체물리', '광년', '우주망원경', '중력파', '성단',
+                '성운형성', '태양풍', '태양계', '케플러', '우주비행사', '착륙선'
+            ],
+            hard: [
+                '외계문명탐사', '상대성이론', '양자중력이론', '초끈이론', '천체관측소',
+                '우주개발프로젝트', '달착륙미션', '화성이주계획', '중력보정장치',
+                '항성진화모델', '우주식민지건설', '행성간이동기술', '블랙홀증발현상',
+                '중성미자관측기', '중력렌즈효과', '우주배경복사', '은하형성과정',
+                '초대질량블랙홀', '우주공간탐사선', '외계행성대기분석', '행성지질구조',
+                '태양계외행성', '인공지능우주탐사', '극초신성폭발', '초고에너지우주선',
+                '행성간통신시스템', '인류문명지속가능성', '우주관측프로젝트'
+            ]
+        };
+
+        // 이벤트 리스너
+        startButton.addEventListener('click', startGame);
+        resetButton.addEventListener('click', resetGame);
+        typingInput.addEventListener('input', handleInput);
+
+        // 난이도 버튼 이벤트 리스너
+        difficultyButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                // 이미 active 클래스가 있으면 무시
+                if (this.classList.contains('active')) return;
+
+                // 모든 버튼에서 active 클래스 제거
+                difficultyButtons.forEach(btn => btn.classList.remove('active'));
+
+                // 클릭된 버튼에 active 클래스 추가
+                this.classList.add('active');
+
+                // 선택된 난이도로 설정
+                currentDifficulty = this.dataset.difficulty;
+
+                // 게임이 진행 중이면 재시작
+                if (isPlaying) {
+                    resetGame();
+                    startGame();
+                }
+            });
+        });
+
+        // 게임 시작 함수
+        function startGame() {
+            isPlaying = true;
+            wordCount = 0;
+            correctChars = 0;
+            totalChars = 0;
+            startTime = new Date().getTime();
+
+            // UI 업데이트
+            accuracyElement.textContent = '100%';
+            cpmElement.textContent = '0';
+            wordsElement.textContent = '0';
+            startButton.disabled = true;
+            resetButton.disabled = false;
+            typingInput.disabled = false;
+            typingInput.value = '';
+            typingInput.focus();
+
+            // 첫 단어 표시
+            showNewWord();
+        }
+
+        // 단어 표시 함수
+        function showNewWord() {
+            const wordList = wordLists[currentDifficulty];
+            const randomIndex = Math.floor(Math.random() * wordList.length);
+            currentWord = wordList[randomIndex];
+
+            // 목표 단어 표시
+            targetWordElement.textContent = currentWord;
+
+            // 피드백 영역 초기화
+            feedbackArea.innerHTML = '';
+
+            // 문자별 피드백 요소 생성
+            currentWord.split('').forEach(char => {
+                const span = document.createElement('span');
+                span.textContent = char;
+                span.className = 'typing-character typing-untyped';
+                feedbackArea.appendChild(span);
+            });
+
+            // 입력 필드 초기화
+            typingInput.value = '';
+            typingInput.focus();
+        }
+
+        // 입력 처리 함수
+        function handleInput() {
+            if (!isPlaying) return;
+
+            const typedValue = typingInput.value;
+            const feedbackChars = feedbackArea.querySelectorAll('.typing-character');
+
+            // 문자별 피드백 업데이트
+            for (let i = 0; i < currentWord.length; i++) {
+                if (i < typedValue.length) {
+                    // 입력된 문자
+                    if (typedValue[i] === currentWord[i]) {
+                        feedbackChars[i].className = 'typing-character typing-correct';
+                    } else {
+                        feedbackChars[i].className = 'typing-character typing-incorrect';
+                    }
+                } else {
+                    // 아직 입력되지 않은 문자
+                    feedbackChars[i].className = 'typing-character typing-untyped';
+                }
+            }
+
+            // 입력 완료 및 정확성 확인
+            if (typedValue.length === currentWord.length) {
+                if (typedValue === currentWord) {
+                    // 정확한 입력
+                    wordCount++;
+                    correctChars += currentWord.length;
+                    totalChars += currentWord.length;
+                    wordsElement.textContent = wordCount;
+                    updateStats();
+
+                    // 다음 단어로 진행
+                    setTimeout(showNewWord, 300);
+                } else {
+                    // 부정확한 입력
+                    let correctCount = 0;
+                    for (let i = 0; i < currentWord.length; i++) {
+                        if (typedValue[i] === currentWord[i]) {
+                            correctCount++;
+                        }
+                    }
+                    correctChars += correctCount;
+                    totalChars += currentWord.length;
+                    updateStats();
+                }
+            }
+        }
+
+        // 통계 업데이트 함수
+        function updateStats() {
+            // 정확도 계산
+            const accuracy = totalChars > 0 ? Math.round((correctChars / totalChars) * 100) : 100;
+            accuracyElement.textContent = `${accuracy}%`;
+
+            // CPM 계산
+            const currentTime = new Date().getTime();
+            const elapsedMinutes = (currentTime - startTime) / 1000 / 60;
+
+            if (elapsedMinutes > 0) {
+                const cpm = Math.round(correctChars / elapsedMinutes);
+                cpmElement.textContent = cpm;
+            }
+        }
+
+        // 게임 초기화 함수
+        function resetGame() {
+            isPlaying = false;
+            targetWordElement.textContent = '시작 버튼을 눌러 연습을 시작하세요';
+            feedbackArea.innerHTML = '';
+            typingInput.value = '';
+            typingInput.disabled = true;
+            startButton.disabled = false;
+            resetButton.disabled = true;
+
+            // 통계 초기화
+            accuracyElement.textContent = '100%';
+            cpmElement.textContent = '0';
+            wordsElement.textContent = '0';
+        }
+    </script>
+</body>
+
+</html>

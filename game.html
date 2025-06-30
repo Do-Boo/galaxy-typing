@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>타자 디펜스 게임 - 우주 테마</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            touch-action: manipulation;
+            background-color: #0c0a1f;
+            /* Deep space blue/black */
+            color: #e0e0e0;
+            /* Light text */
+            overflow: hidden;
+            /* Prevent scrollbars */
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 10px auto;
+            padding: 15px;
+            background-color: #1a1a2e;
+            /* Dark purple/blue */
+            border: 8px solid #0f3460;
+            /* Darker blue border */
+            border-radius: 10px;
+            box-shadow: 0 0 25px rgba(76, 209, 255, 0.3);
+            /* Neon blue glow */
+        }
+
+        .game-world {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            /* Starry background */
+            background-color: #0c0a1f;
+            background-image:
+                radial-gradient(white, rgba(255, 255, 255, .2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255, 255, 255, .15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255, 255, 255, .1) 2px, transparent 40px),
+                radial-gradient(rgba(255, 255, 255, .4), rgba(255, 255, 255, .1) 2px, transparent 30px);
+            background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
+            background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+            border: 4px solid #4cc9f0;
+            /* Neon blue border */
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .path {
+            /* Metallic platform path */
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: linear-gradient(to bottom, #aaa, #777);
+            /* Silver gradient */
+            border-top: 3px solid #ccc;
+            border-bottom: 3px solid #555;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 0;
+        }
+
+        .goal {
+            /* Portal goal */
+            position: absolute;
+            left: -10px;
+            /* Slightly overlap left edge */
+            top: 0;
+            bottom: 0;
+            width: 45px;
+            background: radial-gradient(circle, rgba(140, 20, 252, 0.8) 20%, rgba(76, 209, 255, 0.5) 70%, transparent 100%);
+            /* Purple/Blue portal */
+            border-right: 5px solid #8c14fc;
+            /* Purple border */
+            border-radius: 0 50% 50% 0 / 0 20% 20% 0;
+            /* Curved edge */
+            z-index: 1;
+            animation: portal-pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes portal-pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+        }
+
+        .enemy {
+            position: absolute;
+            bottom: 50px;
+            width: 40px;
+            /* Slightly larger enemy */
+            height: 40px;
+            font-size: 2rem;
+            /* Larger emoji */
+            line-height: 1;
+            text-align: center;
+            z-index: 2;
+            transition: transform 0.2s ease-out;
+            filter: drop-shadow(0 0 3px #fff);
+            /* White glow */
+        }
+
+        .enemy-word {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(76, 209, 255, 0.8);
+            /* Neon blue background */
+            color: #0c0a1f;
+            /* Dark text on light background */
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            margin-bottom: 6px;
+            z-index: 3;
+            border: 1px solid #fff;
+            box-shadow: 0 0 5px #4cc9f0;
+        }
+
+        .input-area {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .input-field {
+            font-family: sans-serif;
+            font-size: 1.25rem;
+            border-width: 4px;
+            border-style: solid;
+            border-color: #4cc9f0;
+            /* Neon blue border */
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            outline: none;
+            background-color: #e0e0e0;
+            /* Light input background */
+            color: #1a1a2e;
+            /* Dark text */
+            box-shadow: 0 0 10px #4cc9f0;
+            /* Neon blue glow */
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .input-field:focus {
+            box-shadow: 0 0 15px #4cc9f0, 0 0 5px #fff;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #4cc9f0;
+            /* Neon blue info text */
+            text-shadow: 0 0 5px #4cc9f0;
+        }
+
+        .message-box {
+            min-height: 2rem;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #fca311;
+            /* Orange message text */
+            text-shadow: 0 0 3px #fca311;
+        }
+
+        .button-container {
+            text-align: center;
+        }
+
+        .start-button,
+        .restart-button {
+            font-family: 'Press Start 2P', cursive;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            border: 4px solid #4cc9f0;
+            /* Neon blue border */
+            box-shadow: 4px 4px 0px #0f3460;
+            /* Dark blue shadow */
+            transition: all 0.1s ease-in-out;
+            cursor: pointer;
+            margin: 10px;
+            background: linear-gradient(to bottom, #4cc9f0, #0f3460);
+            /* Blue gradient */
+            color: white;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        .start-button:active,
+        .restart-button:active {
+            box-shadow: 1px 1px 0px #0f3460;
+            transform: translate(3px, 3px);
+        }
+
+        .restart-button {
+            background: linear-gradient(to bottom, #fca311, #e85d04);
+            /* Orange gradient */
+            border-color: #fca311;
+            box-shadow: 4px 4px 0px #a04103;
+        }
+
+        .restart-button:active {
+            box-shadow: 1px 1px 0px #a04103;
+        }
+
+        /* Enemy destroyed animation */
+        .destroyed {
+            opacity: 0;
+            transform: scale(0.5) rotate(45deg) translateY(-50px);
+            /* Fly up and fade */
+            filter: blur(5px);
+            transition: all 0.4s ease-out;
+        }
+
+        /* Enemy hit goal effect */
+        .goal-hit {
+            animation: goal-flash 0.5s ease;
+        }
+
+        /* Keyframes remain the same */
+        @keyframes goal-flash {
+
+            0%,
+            100% {
+                background: radial-gradient(circle, rgba(140, 20, 252, 0.8) 20%, rgba(76, 209, 255, 0.5) 70%, transparent 100%);
+            }
+
+            50% {
+                background: radial-gradient(circle, rgba(255, 76, 60, 1) 20%, rgba(255, 150, 100, 0.8) 70%, transparent 100%);
+            }
+
+            /* Flash red */
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen">
+
+    <div class="game-container">
+        <div class="game-info">
+            <div>점수: <span id="score">0</span></div>
+            <div>보호막: <span id="lives">10</span></div> {/* Changed '생명' to '보호막' */}
+            <div>웨이브: <span id="wave">0</span></div>
+        </div>
+
+        <div class="game-world" id="game-world">
+            <div class="path"></div>
+            <div class="goal" id="goal"></div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="word-input" class="input-field" placeholder="단어를 입력하여 외계인 격퇴!" autocomplete="off"
+                autocorrect="off" autocapitalize="off" spellcheck="false" disabled>
+        </div>
+
+        <div id="message-box" class="message-box"></div>
+
+        <div class="button-container">
+            <button id="start-button" class="start-button">시작!</button>
+            <button id="restart-button" class="restart-button hidden">다시 시작</button>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements (same as before)
+        const gameWorld = document.getElementById('game-world');
+        const goal = document.getElementById('goal');
+        const scoreDisplay = document.getElementById('score');
+        const livesDisplay = document.getElementById('lives');
+        const waveDisplay = document.getElementById('wave');
+        const wordInput = document.getElementById('word-input');
+        const messageBox = document.getElementById('message-box');
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+
+        // Word List (same as before, but could be space-themed)
+        const words = [
+            '우주', '행성', '은하', '별똥별', '블랙홀', '외계인', '우주선', '레이저',
+            '워프', '궤도', '방어막', '에너지', '함선', '침략', '방어', '요격',
+            '좌표', '항해', '탐사', '미지', '신호', '교신', '중력', '무중력',
+            '발사', '명중', '파괴', '생존', '탈출', '귀환', '임무', '성공'
+            // Add more space-themed words
+        ];
+
+        // Enemy Data (Space Theme)
+        const enemyTypes = [
+            { sprite: "👾", speed: 1, hp: 5, points: 10 },    // Basic Alien
+            { sprite: "👽", speed: 1.5, hp: 3, points: 15 },  // Fast Alien
+            { sprite: "🐙", speed: 0.8, hp: 10, points: 20 }, // Tentacle Alien (Tougher)
+            { sprite: "🚀", speed: 2.0, hp: 2, points: 25 },  // Fast Rocket
+            { sprite: "🛸", speed: 1.0, hp: 12, points: 30 }  // UFO (Tough)
+        ];
+
+        // Game State Variables (same as before)
+        const MAX_LIVES = 10;
+        let score = 0;
+        let lives = MAX_LIVES;
+        let wave = 0;
+        let enemies = [];
+        let isPlaying = false;
+        let gameInterval;
+        let waveInterval; // Renamed from spawnInterval for clarity
+        let baseSpeed = 1;
+        let enemiesThisWave = 0;
+        let enemiesSpawnedThisWave = 0;
+        const WAVE_DELAY = 5000;
+        const SPAWN_INTERVAL = 1500; // Initial spawn interval
+
+        // --- Event Listeners --- (same as before)
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', restartGame);
+        wordInput.addEventListener('input', handleInput);
+        wordInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') e.preventDefault();
+        });
+
+        // --- Game Logic Functions ---
+
+        function startGame() {
+            if (isPlaying) return;
+            isPlaying = true;
+            score = 0;
+            lives = MAX_LIVES;
+            wave = 0;
+            enemies = [];
+            baseSpeed = 1;
+
+            document.querySelectorAll('.enemy').forEach(el => el.remove());
+
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = lives; // Update lives display immediately
+            waveDisplay.textContent = wave;
+            messageBox.textContent = '';
+            wordInput.disabled = false;
+            wordInput.value = '';
+            wordInput.placeholder = "단어를 입력하여 외계인 격퇴!";
+            startButton.classList.add('hidden');
+            restartButton.classList.add('hidden');
+
+            // Clear any potentially running intervals/timeouts from previous games
+            clearInterval(gameInterval);
+            clearTimeout(waveInterval); // Use waveInterval consistently
+
+            gameInterval = setInterval(gameLoop, 30);
+            startNextWave();
+            setTimeout(() => wordInput.focus(), 50);
+        }
+
+        function gameLoop() {
+            if (!isPlaying) return;
+            moveEnemies();
+            checkGoalReached();
+        }
+
+        function startNextWave() {
+            if (!isPlaying) return;
+            wave++;
+            waveDisplay.textContent = wave;
+            enemiesThisWave = 5 + wave * 3; // Slightly more enemies per wave
+            enemiesSpawnedThisWave = 0;
+            baseSpeed = 1 + (wave * 0.06); // Slightly faster speed increase
+
+            messageBox.textContent = `침략 ${wave} 웨이브!`; // Themed message
+            setTimeout(() => { if (isPlaying) messageBox.textContent = ''; }, 2000);
+
+            // Clear previous wave timeout before starting new one
+            clearTimeout(waveInterval);
+            spawnEnemyForWave();
+        }
+
+        function spawnEnemyForWave() {
+            if (!isPlaying || enemiesSpawnedThisWave >= enemiesThisWave) {
+                checkWaveEndCondition(); // Check if wave ended after last spawn attempt
+                return;
+            }
+
+            spawnEnemy();
+            enemiesSpawnedThisWave++;
+
+            if (enemiesSpawnedThisWave < enemiesThisWave) {
+                // Schedule next spawn using waveInterval
+                const spawnDelay = SPAWN_INTERVAL / (1 + wave * 0.15); // Faster spawn rate increase
+                waveInterval = setTimeout(spawnEnemyForWave, Math.max(300, spawnDelay)); // Minimum 300ms delay
+            } else {
+                // Last enemy of the wave spawned, check end condition after a delay
+                // This helps ensure the last enemy is processed correctly
+                setTimeout(checkWaveEndCondition, SPAWN_INTERVAL);
+            }
+        }
+
+
+        function spawnEnemy() {
+            const typeIndex = Math.floor(Math.random() * enemyTypes.length);
+            const enemyType = enemyTypes[typeIndex];
+            const enemyEl = document.createElement('div');
+            enemyEl.classList.add('enemy');
+            enemyEl.textContent = enemyType.sprite;
+
+            const wordIndex = Math.floor(Math.random() * words.length);
+            const word = words[wordIndex];
+
+            const wordEl = document.createElement('div');
+            wordEl.classList.add('enemy-word');
+            wordEl.textContent = word;
+            enemyEl.appendChild(wordEl);
+
+            enemyEl.style.left = gameWorld.offsetWidth + 'px';
+            const randomOffsetY = Math.random() * 20 - 10;
+            enemyEl.style.bottom = (50 + randomOffsetY) + 'px'; // Keep on path level
+
+            gameWorld.appendChild(enemyEl);
+
+            enemies.push({
+                element: enemyEl,
+                word: word,
+                hp: enemyType.hp, // HP not used currently, but kept for potential future use
+                speed: enemyType.speed * baseSpeed,
+                points: enemyType.points,
+                typeIndex: typeIndex,
+                destroyed: false
+            });
+        }
+
+        function moveEnemies() {
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemyData = enemies[i];
+                if (enemyData.destroyed) continue;
+
+                const enemyEl = enemyData.element;
+                let currentLeft = parseInt(enemyEl.style.left || gameWorld.offsetWidth);
+
+                currentLeft -= enemyData.speed;
+                enemyEl.style.left = currentLeft + 'px';
+            }
+        }
+
+        function checkGoalReached() {
+            const goalLeftEdge = goal.offsetWidth;
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemyData = enemies[i];
+                if (enemyData.destroyed) continue;
+
+                const enemyEl = enemyData.element;
+                const enemyLeft = parseInt(enemyEl.style.left);
+
+                if (enemyLeft <= goalLeftEdge) {
+                    handleGoalReached(enemyData, i);
+                }
+            }
+            // Wave end check moved to checkWaveEndCondition
+        }
+
+        function handleGoalReached(enemyData, index) {
+            if (enemyData.destroyed) return;
+
+            lives--;
+            livesDisplay.textContent = lives;
+            goal.classList.add('goal-hit');
+            setTimeout(() => goal.classList.remove('goal-hit'), 500);
+
+            // Mark as destroyed to prevent further interaction
+            enemyData.destroyed = true;
+            enemyData.element.remove(); // Remove immediately
+            enemies.splice(index, 1); // Remove from array
+
+            if (lives <= 0) {
+                endGame();
+            } else {
+                messageBox.textContent = `적 통과! 보호막 ${lives} 남음`;
+                setTimeout(() => { if (isPlaying) messageBox.textContent = ''; }, 1500);
+                checkWaveEndCondition(); // Check if wave ended after goal hit
+            }
+        }
+
+        function handleInput() {
+            if (!isPlaying) return;
+            const typedValue = wordInput.value;
+            let enemyFound = false;
+
+            // Prioritize enemies closer to the goal (left side)
+            // Sort enemies by their 'left' position (ascending)
+            const targetableEnemies = enemies.filter(e => !e.destroyed)
+                .sort((a, b) => parseInt(a.element.style.left) - parseInt(b.element.style.left));
+
+            for (let i = 0; i < targetableEnemies.length; i++) {
+                const enemyData = targetableEnemies[i];
+                if (enemyData.word === typedValue) {
+                    // Find the original index in the main enemies array
+                    const originalIndex = enemies.findIndex(e => e === enemyData);
+                    if (originalIndex > -1) {
+                        destroyEnemy(enemyData, originalIndex);
+                        enemyFound = true;
+                        break; // Destroy only the closest matching enemy
+                    }
+                }
+            }
+
+            if (enemyFound) {
+                wordInput.value = '';
+            }
+        }
+
+        function destroyEnemy(enemyData, index) {
+            if (enemyData.destroyed) return;
+
+            enemyData.destroyed = true;
+            enemyData.element.classList.add('destroyed');
+
+            score += enemyData.points;
+            scoreDisplay.textContent = score;
+
+            setTimeout(() => {
+                if (enemyData.element.parentNode) {
+                    enemyData.element.remove();
+                }
+                const currentIndex = enemies.findIndex(e => e === enemyData);
+                if (currentIndex > -1) {
+                    enemies.splice(currentIndex, 1);
+                }
+                checkWaveEndCondition(); // Check if wave ended after destruction
+            }, 400); // Match longer animation duration
+        }
+
+        function checkWaveEndCondition() {
+            // Only trigger next wave if playing, all enemies for the wave have been spawned,
+            // and no active (not destroyed) enemies remain on screen.
+            if (isPlaying && enemiesSpawnedThisWave >= enemiesThisWave && enemies.filter(e => !e.destroyed).length === 0) {
+                // Ensure we don't trigger multiple times rapidly
+                clearTimeout(waveInterval); // Clear any pending spawn timeouts
+                messageBox.textContent = `웨이브 ${wave} 방어 성공!`;
+                // Use waveInterval to schedule the next wave start
+                waveInterval = setTimeout(startNextWave, WAVE_DELAY);
+                // Reset spawn count ONLY when starting next wave to prevent premature wave end checks
+                // enemiesSpawnedThisWave = 0; // Moved reset to startNextWave
+            }
+        }
+
+        function endGame() {
+            isPlaying = false;
+            clearInterval(gameInterval);
+            clearTimeout(waveInterval); // Clear pending wave/spawn timeouts
+
+            wordInput.disabled = true;
+            wordInput.placeholder = "게임 종료!";
+            messageBox.textContent = `게임 종료! 최종 점수: ${score}, 최종 웨이브: ${wave}`;
+            messageBox.style.color = '#e74c3c';
+            restartButton.classList.remove('hidden');
+
+            // Optional: Clear remaining enemy elements visually if needed
+            // enemies.forEach(e => e.element.remove());
+            // enemies = []; // Clear array
+        }
+
+        function restartGame() {
+            restartButton.classList.add('hidden');
+            startButton.classList.remove('hidden');
+            // Clear potential leftover timeouts/intervals before starting
+            clearInterval(gameInterval);
+            clearTimeout(waveInterval);
+            startGame();
+        }
+
+    </script>
+</body>
+
+</html>

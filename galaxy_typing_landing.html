@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galaxy Typing - 우주 테마의 타자 연습 게임</title>
+    <meta name="description" content="우주를 여행하며 타자 마스터가 되어보세요! 4가지 게임 모드로 재미있게 타자 실력을 향상시키는 Galaxy Typing 앱">
+    <meta name="keywords" content="타자연습,타이핑,키보드,교육,학습,우주,게임,속도,정확도,한글,영어,WPM,연습앱,타자게임,스킬,향상,훈련,실력,측정,통계,음악,설정">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Galaxy Typing - 우주 테마의 타자 연습 게임">
+    <meta property="og:description" content="우주를 여행하며 타자 마스터가 되어보세요!">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="./assets/images/og-image.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/images/app_icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/images/app_icon.png">
+
+    <style>
+        :root {
+            /* Galaxy Typing 색상 팔레트 */
+            --primary: #00D4FF;
+            --primary-light: #66E0FF;
+            --primary-dark: #0099CC;
+            --secondary: #9C4DFF;
+            --secondary-light: #B366FF;
+            --secondary-dark: #7B2CBF;
+            --accent: #FF4081;
+            --background: #0A0E21;
+            --background-lighter: #1D1E33;
+            --background-darker: #070B17;
+            --text-primary: #FFFFFF;
+            --text-secondary: #E0E0E0;
+            --text-muted: #B0B0B0;
+            --border-color: #3A4A5C;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* 우주 배경 애니메이션 */
+        .space-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--background) 0%, var(--background-darker) 50%, var(--background-lighter) 100%);
+            z-index: -2;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image:
+                radial-gradient(2px 2px at 20px 30px, var(--primary), transparent),
+                radial-gradient(2px 2px at 40px 70px, var(--secondary), transparent),
+                radial-gradient(1px 1px at 90px 40px, var(--accent), transparent),
+                radial-gradient(1px 1px at 130px 80px, var(--primary-light), transparent),
+                radial-gradient(2px 2px at 160px 30px, var(--secondary-light), transparent);
+            background-repeat: repeat;
+            background-size: 200px 100px;
+            animation: twinkle 20s linear infinite;
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* 헤더 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 14, 33, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 1.2rem;
+            color: var(--primary);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        /* 모바일 메뉴 */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* 메인 섹션들 */
+        .section {
+            padding: 6rem 5% 4rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* 히어로 섹션 */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4rem;
+            padding-top: 8rem;
+        }
+
+        .hero-content {
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .hero-title {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        .hero-description {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            padding: 1rem 2rem;
+            border: 2px solid var(--primary);
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .hero-visual {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .phone-mockup {
+            position: relative;
+            width: 300px;
+            height: 600px;
+            background: linear-gradient(135deg, var(--background-lighter), var(--background-darker));
+            border-radius: 30px;
+            padding: 20px;
+            box-shadow:
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 0 1px var(--border-color);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            background: var(--background);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .screen-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            opacity: 0.1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        /* 기능 섹션 */
+        .features {
+            background: rgba(29, 30, 51, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            text-align: center;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+            justify-items: center;
+        }
+
+        .feature-card {
+            background: rgba(29, 30, 51, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            max-width: 350px;
+            width: 100%;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.1);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 1.5rem;
+            color: white;
+            font-weight: bold;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .feature-description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* 스크린샷 갤러리 슬라이더 */
+        .screenshots {
+            text-align: center;
+        }
+
+        .screenshot-slider-container {
+            position: relative;
+            margin-top: 3rem;
+            overflow: visible;
+            padding: 0 60px;
+        }
+
+        .screenshot-slider-wrapper {
+            overflow: visible;
+            border-radius: 20px;
+        }
+
+        .screenshot-slider {
+            display: flex;
+            transition: transform 0.5s ease;
+            gap: 2rem;
+        }
+
+        .screenshot-item {
+            min-width: calc(33.333% - 1.33rem);
+            border-radius: 20px;
+            overflow: hidden;
+            background: var(--background-lighter);
+            aspect-ratio: 9/16;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .screenshot-item:hover {
+            transform: scale(1.05);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .screenshot-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 15px;
+        }
+
+        .screenshot-placeholder {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            opacity: 0.1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .screenshot-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            padding: 1rem;
+            border-radius: 0 0 15px 15px;
+        }
+
+        .screenshot-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .screenshot-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 0 1rem;
+        }
+
+        .slider-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 212, 255, 0.8);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .slider-nav:hover {
+            background: var(--primary);
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .slider-nav.prev {
+            left: 0;
+        }
+
+        .slider-nav.next {
+            right: 0;
+        }
+
+        .slider-dots {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .slider-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .slider-dot.active {
+            background: var(--primary);
+            transform: scale(1.2);
+        }
+
+        /* 플랫폼 선택 섹션 */
+        .platforms {
+            background: rgba(29, 30, 51, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            text-align: center;
+        }
+
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .platform-card {
+            background: rgba(29, 30, 51, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .platform-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.1);
+        }
+
+        .platform-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .platform-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .platform-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .platform-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .platform-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        /* 다운로드 섹션 */
+        .download {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 30px;
+            text-align: center;
+            color: white;
+        }
+
+        .download-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .download-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .download-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .store-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 1rem 2rem;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .store-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-3px);
+        }
+
+        .store-icon {
+            font-size: 2rem;
+        }
+
+        .store-text {
+            text-align: left;
+        }
+
+        .store-text-small {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .store-text-large {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* 푸터 */
+        .footer {
+            background: var(--background-darker);
+            border-top: 1px solid var(--border-color);
+            padding: 3rem 5% 2rem;
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .footer-description {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border-color);
+            padding-top: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .hero {
+                flex-direction: column;
+                text-align: center;
+                padding-top: 6rem;
+            }
+
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+
+            .phone-mockup {
+                width: 250px;
+                height: 500px;
+            }
+
+            .section {
+                padding: 4rem 5% 3rem;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .screenshot-item {
+                min-width: calc(50% - 1rem);
+            }
+
+            .screenshot-slider-container {
+                padding: 0 40px;
+            }
+
+            .slider-nav {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
+            .platform-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .download-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-title {
+                font-size: 1.5rem;
+            }
+
+            .screenshot-item {
+                min-width: 100%;
+            }
+
+            .screenshot-slider-container {
+                padding: 0 30px;
+            }
+
+            .slider-nav {
+                width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
+            }
+
+            .nav {
+                padding: 1rem 3%;
+            }
+
+            .section {
+                padding: 3rem 3% 2rem;
+            }
+        }
+
+        /* 스크롤 애니메이션 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 우주 배경 -->
+    <div class="space-background"></div>
+    <div class="stars"></div>
+
+    <!-- 헤더 -->
+    <header class="header">
+        <nav class="nav">
+            <a href="#" class="logo">GALAXY TYPING</a>
+            <ul class="nav-links">
+                <li><a href="#features">기능</a></li>
+                <li><a href="#platforms">플랫폼</a></li>
+                <li><a href="#screenshots">스크린샷</a></li>
+                <li><a href="#download">다운로드</a></li>
+            </ul>
+            <a href="#download" class="download-btn">앱 다운로드</a>
+            <button class="mobile-menu-btn">☰</button>
+        </nav>
+    </header>
+
+    <!-- 히어로 섹션 -->
+    <section class="hero section">
+        <div class="hero-content fade-in">
+            <h1 class="hero-title">GALAXY TYPING</h1>
+            <p class="hero-subtitle">우주 테마의 타자 연습 게임</p>
+            <p class="hero-description">
+                우주를 여행하며 타자 마스터가 되어보세요! 4가지 게임 모드와 아름다운 우주 테마로
+                재미있게 타자 실력을 향상시킬 수 있는 혁신적인 타자 연습 앱입니다.
+            </p>
+            <div class="hero-buttons">
+                <a href="#download" class="btn-primary">
+                    무료 다운로드
+                </a>
+                <a href="#features" class="btn-secondary">
+                    기능 살펴보기
+                </a>
+            </div>
+        </div>
+        <div class="hero-visual fade-in">
+            <div class="phone-mockup">
+                <div class="phone-screen">
+                    <img src="./galaxy_typing/screenshots/main_screen.png" alt="Galaxy Typing 메인 화면"
+                        style="width: 100%; height: 100%; object-fit: cover; border-radius: 20px;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 기능 섹션 -->
+    <section id="features" class="features section fade-in">
+        <h2 class="section-title">주요 기능</h2>
+        <p class="section-subtitle">Galaxy Typing이 제공하는 특별한 기능들을 만나보세요</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">TARGET</div>
+                <h3 class="feature-title">기본 연습</h3>
+                <p class="feature-description">
+                    단어별 타자 연습으로 기초 실력을 탄탄하게 다져보세요.
+                    한글과 영어 모두 지원하며 난이도별 학습이 가능합니다.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">TIMER</div>
+                <h3 class="feature-title">시간 도전</h3>
+                <p class="feature-description">
+                    제한 시간 내에 최대한 많은 단어를 입력하여 타자 속도를
+                    향상시키고 집중력을 기를 수 있습니다.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">SPACE</div>
+                <h3 class="feature-title">우주 디펜스</h3>
+                <p class="feature-description">
+                    슈팅 게임 형태의 타자 게임으로 재미있게 연습하세요.
+                    우주선을 조종하며 적을 물리치는 스릴 넘치는 게임 모드입니다.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">TEXT</div>
+                <h3 class="feature-title">긴 텍스트 연습</h3>
+                <p class="feature-description">
+                    문장 단위의 긴 텍스트로 실제 타이핑 환경과 유사한
+                    연습을 통해 실용적인 타자 실력을 기를 수 있습니다.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">STATS</div>
+                <h3 class="feature-title">상세한 통계</h3>
+                <p class="feature-description">
+                    WPM, 정확도, 진행 상황 등 상세한 통계로 자신의
+                    타자 실력 향상 과정을 한눈에 확인할 수 있습니다.
+                </p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">AUDIO</div>
+                <h3 class="feature-title">몰입감 있는 오디오</h3>
+                <p class="feature-description">
+                    우주 테마의 배경음악과 효과음으로 더욱 몰입감 있는
+                    타자 연습 경험을 제공합니다.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 플랫폼 섹션 -->
+    <section id="platforms" class="platforms section fade-in">
+        <h2 class="section-title">모든 플랫폼에서 즐기세요</h2>
+        <p class="section-subtitle">Galaxy Typing은 모바일부터 데스크톱까지 모든 기기에서 플레이할 수 있습니다</p>
+
+        <div class="platform-grid">
+            <div class="platform-card">
+                <div class="platform-icon">MOBILE</div>
+                <h3 class="platform-title">모바일 앱</h3>
+                <p class="platform-description">
+                    iOS와 Android에서 최적화된 터치 인터페이스로
+                    언제 어디서나 타자 연습을 즐기세요.
+                </p>
+                <a href="#download" class="platform-btn">앱 다운로드</a>
+            </div>
+
+            <div class="platform-card">
+                <div class="platform-icon">WEB</div>
+                <h3 class="platform-title">웹 버전</h3>
+                <p class="platform-description">
+                    브라우저에서 바로 플레이할 수 있는 웹 버전으로
+                    설치 없이 즉시 타자 연습을 시작하세요.
+                </p>
+                <a href="./game.html" class="platform-btn">웹에서 플레이</a>
+            </div>
+
+            <div class="platform-card">
+                <div class="platform-icon">DESKTOP</div>
+                <h3 class="platform-title">데스크톱 앱</h3>
+                <p class="platform-description">
+                    Windows, macOS, Linux에서 전체 화면으로
+                    더욱 몰입감 있는 타자 연습 경험을 제공합니다.
+                </p>
+                <a href="#download" class="platform-btn">데스크톱 다운로드</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 스크린샷 섹션 -->
+    <section id="screenshots" class="screenshots section fade-in">
+        <h2 class="section-title">게임 스크린샷</h2>
+        <p class="section-subtitle">Galaxy Typing의 아름다운 우주 테마 인터페이스를 확인해보세요</p>
+
+        <div class="screenshot-slider-container">
+            <button class="slider-nav prev" onclick="moveSlider(-1)">‹</button>
+            <button class="slider-nav next" onclick="moveSlider(1)">›</button>
+
+            <div class="screenshot-slider-wrapper">
+                <div class="screenshot-slider" id="screenshotSlider">
+                    <div class="screenshot-item">
+                        <img src="./galaxy_typing/screenshots/main_screen.png" alt="메인 화면" class="screenshot-image">
+                        <div class="screenshot-overlay">
+                            <div class="screenshot-title">메인 화면</div>
+                            <div class="screenshot-desc">우주 테마의 아름다운 메인 메뉴에서 다양한 게임 모드를 선택하세요</div>
+                        </div>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <img src="./galaxy_typing/screenshots/basic_practice.png" alt="기본 연습" class="screenshot-image">
+                        <div class="screenshot-overlay">
+                            <div class="screenshot-title">기본 연습</div>
+                            <div class="screenshot-desc">한글과 영어 단어로 기초 타자 실력을 체계적으로 향상시키세요</div>
+                        </div>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <img src="./galaxy_typing/screenshots/time_challenge.png" alt="시간 도전" class="screenshot-image">
+                        <div class="screenshot-overlay">
+                            <div class="screenshot-title">시간 도전</div>
+                            <div class="screenshot-desc">제한 시간 내 최대한 빠르게 타이핑하여 속도 기록을 갱신하세요</div>
+                        </div>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <img src="./galaxy_typing/screenshots/space_defense.png" alt="우주 디펜스" class="screenshot-image">
+                        <div class="screenshot-overlay">
+                            <div class="screenshot-title">우주 디펜스</div>
+                            <div class="screenshot-desc">우주선을 조종하며 적을 물리치는 스릴 넘치는 슈팅 타자 게임</div>
+                        </div>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <img src="./galaxy_typing/screenshots/stats_screen.png" alt="통계 화면" class="screenshot-image">
+                        <div class="screenshot-overlay">
+                            <div class="screenshot-title">통계 화면</div>
+                            <div class="screenshot-desc">WPM 속도와 정확도를 분석하여 타자 실력 향상을 확인하세요</div>
+                        </div>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <img src="./galaxy_typing/screenshots/settings_screen.png" alt="설정 화면" class="screenshot-image">
+                        <div class="screenshot-overlay">
+                            <div class="screenshot-title">설정 화면</div>
+                            <div class="screenshot-desc">음량 조절과 난이도 설정으로 개인 맞춤형 게임 환경을 구성하세요</div>
+                        </div>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <img src="./galaxy_typing/screenshots/web_version.png" alt="웹 버전" class="screenshot-image">
+                        <div class="screenshot-overlay">
+                            <div class="screenshot-title">웹 버전</div>
+                            <div class="screenshot-desc">설치 없이 브라우저에서 바로 플레이할 수 있는 편리한 웹 버전</div>
+                        </div>
+                    </div>
+
+                    <div class="screenshot-item">
+                        <img src="./galaxy_typing/screenshots/desktop_version.png" alt="데스크톱 버전"
+                            class="screenshot-image">
+                        <div class="screenshot-overlay">
+                            <div class="screenshot-title">데스크톱 버전</div>
+                            <div class="screenshot-desc">큰 화면에서 더욱 몰입감 있게 즐기는 전체 화면 데스크톱 모드</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="slider-dots" id="sliderDots"></div>
+        </div>
+    </section>
+
+    <!-- 다운로드 섹션 -->
+    <section id="download" class="download section fade-in">
+        <h2 class="download-title">지금 다운로드하세요!</h2>
+        <p class="download-subtitle">Galaxy Typing과 함께 타자 실력을 우주 레벨로 향상시켜보세요</p>
+
+        <div class="download-buttons">
+            <a href="#" class="store-btn">
+                <div class="store-icon">APP</div>
+                <div class="store-text">
+                    <div class="store-text-small">Download on the</div>
+                    <div class="store-text-large">App Store</div>
+                </div>
+            </a>
+
+            <a href="#" class="store-btn">
+                <div class="store-icon">PLAY</div>
+                <div class="store-text">
+                    <div class="store-text-small">Get it on</div>
+                    <div class="store-text-large">Google Play</div>
+                </div>
+            </a>
+
+            <a href="./game.html" class="store-btn">
+                <div class="store-icon">WEB</div>
+                <div class="store-text">
+                    <div class="store-text-small">Play on</div>
+                    <div class="store-text-large">Web Browser</div>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-logo">GALAXY TYPING</div>
+            <p class="footer-description">
+                우주를 테마로 한 혁신적인 타자 연습 앱으로, 재미있게 타자 실력을 향상시킬 수 있습니다.
+            </p>
+
+            <div class="footer-links">
+                <a href="#">개인정보처리방침</a>
+                <a href="#">이용약관</a>
+                <a href="#">고객지원</a>
+                <a href="#">문의하기</a>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2025 Galaxy Typing. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 스크린샷 슬라이더
+        let currentSlide = 0;
+        const totalSlides = document.querySelectorAll('.screenshot-item').length;
+        const slidesToShow = 3;
+        const maxSlide = Math.max(0, totalSlides - slidesToShow);
+
+        // 슬라이더 도트 생성
+        function createDots() {
+            const dotsContainer = document.getElementById('sliderDots');
+            const totalDots = Math.ceil(totalSlides / slidesToShow);
+
+            for (let i = 0; i < totalDots; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'slider-dot';
+                if (i === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => goToSlide(i * slidesToShow));
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        // 슬라이더 이동
+        function moveSlider(direction) {
+            currentSlide += direction * slidesToShow;
+
+            if (currentSlide < 0) {
+                currentSlide = 0;
+            } else if (currentSlide > maxSlide) {
+                currentSlide = maxSlide;
+            }
+
+            updateSlider();
+        }
+
+        // 특정 슬라이드로 이동
+        function goToSlide(slideIndex) {
+            currentSlide = Math.min(slideIndex, maxSlide);
+            updateSlider();
+        }
+
+        // 슬라이더 업데이트
+        function updateSlider() {
+            const slider = document.getElementById('screenshotSlider');
+            const translateX = -(currentSlide * (100 / slidesToShow));
+            slider.style.transform = `translateX(${translateX}%)`;
+
+            // 도트 업데이트
+            const dots = document.querySelectorAll('.slider-dot');
+            const activeDotIndex = Math.floor(currentSlide / slidesToShow);
+
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === activeDotIndex);
+            });
+        }
+
+        // 반응형 슬라이더 업데이트
+        function updateResponsiveSlider() {
+            const screenWidth = window.innerWidth;
+            let newSlidesToShow = 3;
+
+            if (screenWidth <= 480) {
+                newSlidesToShow = 1;
+            } else if (screenWidth <= 768) {
+                newSlidesToShow = 2;
+            }
+
+            if (newSlidesToShow !== slidesToShow) {
+                // 슬라이더 재설정
+                currentSlide = 0;
+                updateSlider();
+            }
+        }
+
+        // 자동 슬라이드 (선택사항)
+        function autoSlide() {
+            setInterval(() => {
+                if (currentSlide >= maxSlide) {
+                    currentSlide = 0;
+                } else {
+                    currentSlide += slidesToShow;
+                }
+                updateSlider();
+            }, 5000);
+        }
+
+        // 스크롤 애니메이션
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        // 애니메이션 요소들 관찰
+        document.querySelectorAll('.fade-in').forEach(el => {
+            observer.observe(el);
+        });
+
+        // 헤더 스크롤 효과
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (window.scrollY > 100) {
+                header.style.background = 'rgba(10, 14, 33, 0.98)';
+            } else {
+                header.style.background = 'rgba(10, 14, 33, 0.95)';
+            }
+        });
+
+        // 부드러운 스크롤
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 모바일 메뉴 토글 (추후 구현)
+        document.querySelector('.mobile-menu-btn').addEventListener('click', () => {
+            // 모바일 메뉴 토글 로직
+            console.log('Mobile menu toggle');
+        });
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            createDots();
+            updateSlider();
+            // autoSlide(); // 자동 슬라이드 활성화하려면 주석 해제
+        });
+
+        // 윈도우 리사이즈 이벤트
+        window.addEventListener('resize', updateResponsiveSlider);
+    </script>
+</body>
+
+</html>

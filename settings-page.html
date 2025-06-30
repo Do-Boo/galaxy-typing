@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>우주 타자 - 설정</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- 공통 CSS 파일 링크 (실제 경로로 수정해주세요) -->
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        /* 페이지 전용 스타일 */
+        .settings-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .settings-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .settings-icon {
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+
+        .settings-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid rgba(76, 201, 240, 0.1);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            font-size: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .settings-label-icon {
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .settings-control {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .settings-select {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            transition: all var(--transition-fast);
+        }
+
+        .settings-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.2);
+        }
+
+        .settings-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
+            position: relative;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .settings-checkbox::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            transition: all var(--transition-fast);
+        }
+
+        .settings-checkbox:checked {
+            background: var(--primary);
+            border-color: var(--primary-dark);
+        }
+
+        .settings-checkbox:checked::before {
+            left: 22px;
+            background: white;
+        }
+
+        .settings-range {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 150px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .settings-range::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+        }
+
+        .settings-range::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+        }
+
+        .settings-range-value {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            width: 30px;
+            text-align: right;
+        }
+
+        .theme-options {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .theme-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all var(--transition-fast);
+        }
+
+        .theme-option.active {
+            border-color: white;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .theme-cosmic {
+            background: linear-gradient(135deg, #0c0a1f 0%, #1a1a2e 100%);
+        }
+
+        .theme-neon {
+            background: linear-gradient(135deg, #2b0a3d 0%, #4a0a5e 100%);
+        }
+
+        .theme-sunset {
+            background: linear-gradient(135deg, #2a0845 0%, #6441a5 100%);
+        }
+
+        .theme-ocean {
+            background: linear-gradient(135deg, #141e30 0%, #243b55 100%);
+        }
+
+        .save-btn-container {
+            text-align: center;
+            margin-top: var(--spacing-lg);
+        }
+
+        .save-button {
+            background: var(--primary);
+            color: var(--background);
+            font-weight: 600;
+            border: none;
+            padding: 12px 25px;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            font-size: 1rem;
+            box-shadow: 0 4px 10px rgba(76, 201, 240, 0.3);
+        }
+
+        .save-button:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 6px 15px rgba(76, 201, 240, 0.4);
+        }
+
+        .save-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(76, 201, 240, 0.3);
+        }
+
+        .profile-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: var(--spacing-md) 0;
+        }
+
+        .profile-picture {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+            border: 2px solid var(--primary);
+            overflow: hidden;
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .profile-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .profile-email {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .profile-btn {
+            margin-top: var(--spacing-sm);
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 15px;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .profile-btn:hover {
+            background: rgba(76, 201, 240, 0.1);
+        }
+
+        .nav-buttons {
+            position: absolute;
+            top: var(--spacing-md);
+            left: var(--spacing-md);
+            z-index: 5;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .back-btn:hover {
+            background: rgba(76, 201, 240, 0.1);
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 별 배경 -->
+    <div class="starfield"></div>
+    <div class="gradient-bg"></div>
+
+    <!-- 앱 컨테이너 -->
+    <div class="container flex flex-col" style="min-height: 100vh;">
+        <!-- 네비게이션 버튼 -->
+        <div class="nav-buttons">
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                ← 메인으로
+            </button>
+        </div>
+
+        <!-- 페이지 헤더 -->
+        <div class="text-center my-md">
+            <h1 class="logo">SETTINGS</h1>
+            <p class="tagline">앱 설정 및 프로필</p>
+        </div>
+
+        <!-- 설정 컨테이너 -->
+        <div class="settings-container">
+            <!-- 프로필 카드 -->
+            <div class="settings-card">
+                <div class="settings-header">
+                    <h2 class="settings-title">프로필</h2>
+                    <div class="settings-icon">👤</div>
+                </div>
+                <div class="profile-section">
+                    <div class="profile-picture">
+                        🚀
+                    </div>
+                    <div class="profile-info">
+                        <div class="profile-name">우주인</div>
+                        <div class="profile-email">space_typer@gmail.com</div>
+                    </div>
+                    <button class="profile-btn">프로필 변경</button>
+                </div>
+            </div>
+
+            <!-- 게임 설정 카드 -->
+            <div class="settings-card">
+                <div class="settings-header">
+                    <h2 class="settings-title">게임 설정</h2>
+                    <div class="settings-icon">🎮</div>
+                </div>
+                <div class="settings-list">
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">🔤</span>
+                            기본 난이도
+                        </div>
+                        <div class="settings-control">
+                            <select class="settings-select" id="difficulty-select">
+                                <option value="easy">초급</option>
+                                <option value="medium" selected>중급</option>
+                                <option value="hard">고급</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">⏱️</span>
+                            기본 타이머 (초)
+                        </div>
+                        <div class="settings-control">
+                            <select class="settings-select" id="timer-select">
+                                <option value="30">30</option>
+                                <option value="60" selected>60</option>
+                                <option value="120">120</option>
+                                <option value="300">300</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">🔢</span>
+                            초기 웨이브 수
+                        </div>
+                        <div class="settings-control">
+                            <select class="settings-select" id="wave-select">
+                                <option value="1" selected>1</option>
+                                <option value="3">3</option>
+                                <option value="5">5</option>
+                                <option value="10">10</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">🔁</span>
+                            자동 웨이브 진행
+                        </div>
+                        <div class="settings-control">
+                            <input type="checkbox" class="settings-checkbox" id="auto-wave-checkbox" checked>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 앱 설정 카드 -->
+            <div class="settings-card">
+                <div class="settings-header">
+                    <h2 class="settings-title">앱 설정</h2>
+                    <div class="settings-icon">⚙️</div>
+                </div>
+                <div class="settings-list">
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">🎨</span>
+                            테마
+                        </div>
+                        <div class="settings-control">
+                            <div class="theme-options">
+                                <div class="theme-option theme-cosmic active" data-theme="cosmic"></div>
+                                <div class="theme-option theme-neon" data-theme="neon"></div>
+                                <div class="theme-option theme-sunset" data-theme="sunset"></div>
+                                <div class="theme-option theme-ocean" data-theme="ocean"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">🔊</span>
+                            효과음
+                        </div>
+                        <div class="settings-control">
+                            <input type="checkbox" class="settings-checkbox" id="sound-checkbox" checked>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">🔈</span>
+                            음량
+                        </div>
+                        <div class="settings-control">
+                            <input type="range" class="settings-range" id="volume-range" min="0" max="100" value="80">
+                            <span class="settings-range-value" id="volume-value">80%</span>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">📱</span>
+                            진동
+                        </div>
+                        <div class="settings-control">
+                            <input type="checkbox" class="settings-checkbox" id="vibration-checkbox" checked>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">💾</span>
+                            자동 저장
+                        </div>
+                        <div class="settings-control">
+                            <input type="checkbox" class="settings-checkbox" id="autosave-checkbox" checked>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">🔄</span>
+                            자동 동기화
+                        </div>
+                        <div class="settings-control">
+                            <input type="checkbox" class="settings-checkbox" id="autosync-checkbox" checked>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 데이터 및 개인정보 카드 -->
+            <div class="settings-card">
+                <div class="settings-header">
+                    <h2 class="settings-title">데이터 및 개인정보</h2>
+                    <div class="settings-icon">🔒</div>
+                </div>
+                <div class="settings-list">
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">🗑️</span>
+                            통계 데이터 초기화
+                        </div>
+                        <div class="settings-control">
+                            <button class="btn btn-outline" id="reset-stats-btn">초기화</button>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">📊</span>
+                            통계 내보내기
+                        </div>
+                        <div class="settings-control">
+                            <button class="btn btn-outline" id="export-stats-btn">내보내기</button>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">🔔</span>
+                            알림 허용
+                        </div>
+                        <div class="settings-control">
+                            <input type="checkbox" class="settings-checkbox" id="notifications-checkbox" checked>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <span class="settings-label-icon">📝</span>
+                            사용 데이터 수집 허용
+                        </div>
+                        <div class="settings-control">
+                            <input type="checkbox" class="settings-checkbox" id="analytics-checkbox" checked>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 저장 버튼 -->
+            <div class="save-btn-container">
+                <button class="save-button" id="save-settings-btn">모든 설정 저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 볼륨 슬라이더 값 표시 업데이트
+        const volumeRange = document.getElementById('volume-range');
+        const volumeValue = document.getElementById('volume-value');
+
+        volumeRange.addEventListener('input', function () {
+            volumeValue.textContent = this.value + '%';
+        });
+
+        // 테마 선택
+        const themeOptions = document.querySelectorAll('.theme-option');
+
+        themeOptions.forEach(option => {
+            option.addEventListener('click', function () {
+                // 모든 옵션에서 active 클래스 제거
+                themeOptions.forEach(opt => opt.classList.remove('active'));
+
+                // 클릭된 옵션에 active 클래스 추가
+                this.classList.add('active');
+
+                // 테마 변경 로직 (실제 구현 시 여기에 CSS 변수 업데이트 코드 추가)
+                const selectedTheme = this.dataset.theme;
+                console.log('Selected theme:', selectedTheme);
+
+                // 예시: 알림 표시
+                showNotification(`${selectedTheme} 테마로 변경되었습니다.`);
+            });
+        });
+
+        // 설정 저장 버튼
+        document.getElementById('save-settings-btn').addEventListener('click', function () {
+            // 설정 저장 로직 (실제 구현 시 localStorage나 서버 저장 코드 추가)
+            showNotification('모든 설정이 저장되었습니다.');
+        });
+
+        // 통계 초기화 버튼
+        document.getElementById('reset-stats-btn').addEventListener('click', function () {
+            if (confirm('정말로 모든 통계 데이터를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                // 통계 초기화 로직
+                showNotification('모든 통계가 초기화되었습니다.');
+            }
+        });
+
+        // 통계 내보내기 버튼
+        document.getElementById('export-stats-btn').addEventListener('click', function () {
+            // 통계 내보내기 로직
+            showNotification('통계 데이터가 내보내기되었습니다.');
+        });
+
+        // 알림 표시 함수
+        function showNotification(message) {
+            // 이미 표시된 알림이 있으면 제거
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            // 새 알림 요소 생성
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.left = '50%';
+            notification.style.transform = 'translateX(-50%)';
+            notification.style.backgroundColor = 'rgba(76, 201, 240, 0.9)';
+            notification.style.color = 'white';
+            notification.style.padding = '10px 20px';
+            notification.style.borderRadius = '5px';
+            notification.style.boxShadow = '0 3px 10px rgba(0, 0, 0, 0.2)';
+            notification.style.zIndex = '1000';
+            notification.textContent = message;
+
+            // 문서에 알림 추가
+            document.body.appendChild(notification);
+
+            // 3초 후 알림 자동 제거
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        }
+
+        // 페이지 로드 시 기존 설정 불러오기
+        window.addEventListener('load', function () {
+            // 여기에 로컬 스토리지 등에서 설정을 불러와 UI에 반영하는 코드가 들어갈 수 있음
+        });
+    </script>
+</body>
+
+</html>

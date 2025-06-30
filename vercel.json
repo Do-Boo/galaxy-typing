@@ -1,0 +1,68 @@
+{
+    "version": 2,
+    "name": "galaxy-typing",
+    "builds": [
+        {
+            "src": "galaxy_typing_landing.html",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "image_resizer.html",
+            "use": "@vercel/static"
+        },
+        {
+            "src": "galaxy_typing/screenshots/**",
+            "use": "@vercel/static"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/",
+            "dest": "/galaxy_typing_landing.html"
+        },
+        {
+            "src": "/landing",
+            "dest": "/galaxy_typing_landing.html"
+        },
+        {
+            "src": "/resizer",
+            "dest": "/image_resizer.html"
+        },
+        {
+            "src": "/screenshots/(.*)",
+            "dest": "/galaxy_typing/screenshots/$1"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/$1"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "X-Content-Type-Options",
+                    "value": "nosniff"
+                },
+                {
+                    "key": "X-Frame-Options",
+                    "value": "DENY"
+                },
+                {
+                    "key": "X-XSS-Protection",
+                    "value": "1; mode=block"
+                }
+            ]
+        },
+        {
+            "source": "/galaxy_typing/screenshots/(.*)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=31536000, immutable"
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>우주 타자 - 우주 디펜스</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- 공통 CSS 파일 링크 (실제 경로로 수정해주세요) -->
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        /* 페이지 전용 스타일 */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto var(--spacing-md) auto;
+        }
+
+        .game-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-sm);
+            width: 100%;
+        }
+
+        .game-stat {
+            background: rgba(10, 10, 25, 0.6);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-radius: var(--border-radius-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .game-stat-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .game-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .game-world {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            height: 450px;
+            margin: 0 auto var(--spacing-md) auto;
+            background-color: var(--background);
+            border: 4px solid var(--primary);
+            border-radius: var(--border-radius-md);
+            overflow: hidden;
+            box-shadow: 0 0 25px rgba(76, 209, 255, 0.3);
+
+            /* Starry background */
+            background-image:
+                radial-gradient(white, rgba(255, 255, 255, .2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255, 255, 255, .15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255, 255, 255, .1) 2px, transparent 40px),
+                radial-gradient(rgba(255, 255, 255, .4), rgba(255, 255, 255, .1) 2px, transparent 30px);
+            background-size: 550px 550px, 350px 350px, 250px 250px, 150px 150px;
+            background-position: 0 0, 40px 60px, 130px 270px, 70px 100px;
+        }
+
+        .path {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: linear-gradient(to bottom, #aaa, #777);
+            border-top: 3px solid #ccc;
+            border-bottom: 3px solid #555;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 0;
+        }
+
+        .goal {
+            position: absolute;
+            left: -10px;
+            top: 0;
+            bottom: 0;
+            width: 45px;
+            background: radial-gradient(circle, rgba(140, 20, 252, 0.8) 20%, rgba(76, 209, 255, 0.5) 70%, transparent 100%);
+            border-right: 5px solid #8c14fc;
+            border-radius: 0 50% 50% 0 / 0 20% 20% 0;
+            z-index: 1;
+            animation: portal-pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes portal-pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+        }
+
+        .goal-hit {
+            animation: goal-flash 0.5s ease;
+        }
+
+        @keyframes goal-flash {
+
+            0%,
+            100% {
+                background: radial-gradient(circle, rgba(140, 20, 252, 0.8) 20%, rgba(76, 209, 255, 0.5) 70%, transparent 100%);
+            }
+
+            50% {
+                background: radial-gradient(circle, rgba(255, 76, 60, 1) 20%, rgba(255, 150, 100, 0.8) 70%, transparent 100%);
+            }
+        }
+
+        .enemy {
+            position: absolute;
+            bottom: 50px;
+            width: 40px;
+            height: 40px;
+            font-size: 2rem;
+            line-height: 1;
+            text-align: center;
+            z-index: 2;
+            transition: transform 0.2s ease-out;
+            filter: drop-shadow(0 0 3px #fff);
+        }
+
+        .enemy-word {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(76, 209, 255, 0.8);
+            color: var(--background);
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            margin-bottom: 6px;
+            z-index: 3;
+            border: 1px solid #fff;
+            box-shadow: 0 0 5px var(--primary);
+        }
+
+        .destroyed {
+            opacity: 0;
+            transform: scale(0.5) rotate(45deg) translateY(-50px);
+            filter: blur(5px);
+            transition: all 0.4s ease-out;
+        }
+
+        .input-area {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto var(--spacing-md) auto;
+            text-align: center;
+        }
+
+        .defense-input {
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid var(--primary);
+            border-radius: var(--border-radius-md);
+            color: var(--text-primary);
+            padding: 15px;
+            font-size: 1.2rem;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 0 15px rgba(76, 209, 255, 0.3);
+        }
+
+        .defense-input:focus {
+            outline: none;
+            box-shadow: 0 0 20px rgba(76, 209, 255, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .message-box {
+            min-height: 2rem;
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+            font-size: 1.1rem;
+            color: #fca311;
+            text-shadow: 0 0 3px #fca311;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin: var(--spacing-md) auto;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .difficulty-btn {
+            padding: 8px 15px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .difficulty-btn.active {
+            background: var(--primary);
+            color: var(--background);
+            border-color: var(--primary);
+        }
+
+        .nav-buttons {
+            position: absolute;
+            top: var(--spacing-md);
+            left: var(--spacing-md);
+            z-index: 5;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .back-btn:hover {
+            background: rgba(76, 201, 240, 0.1);
+            border-color: var(--primary);
+        }
+
+        /* 결과 모달 */
+        .result-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 4, 24, 0.8);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: var(--z-modal);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .result-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .result-content {
+            background: var(--card-bg);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            width: 90%;
+            max-width: 500px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 30px rgba(76, 201, 240, 0.3);
+            text-align: center;
+        }
+
+        .result-title {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: var(--spacing-md);
+            text-shadow: 0 0 10px rgba(76, 201, 240, 0.5);
+        }
+
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-md);
+            margin: var(--spacing-md) 0;
+        }
+
+        .result-stat {
+            text-align: center;
+        }
+
+        .result-stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .result-stat-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .result-buttons {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .instructions {
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 별 배경 -->
+    <div class="starfield"></div>
+    <div class="gradient-bg"></div>
+
+    <!-- 앱 컨테이너 -->
+    <div class="container flex flex-col" style="min-height: 100vh;">
+        <!-- 네비게이션 버튼 -->
+        <div class="nav-buttons">
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                ← 메인으로
+            </button>
+        </div>
+
+        <!-- 페이지 헤더 -->
+        <div class="text-center my-md">
+            <h1 class="logo">SPACE DEFENSE</h1>
+            <p class="tagline">우주 디펜스 게임</p>
+        </div>
+
+        <!-- 게임 정보 -->
+        <div class="game-header">
+            <div class="game-stats">
+                <div class="game-stat">
+                    <div class="game-stat-value" id="score">0</div>
+                    <div class="game-stat-label">점수</div>
+                </div>
+                <div class="game-stat">
+                    <div class="game-stat-value" id="lives">10</div>
+                    <div class="game-stat-label">보호막</div>
+                </div>
+                <div class="game-stat">
+                    <div class="game-stat-value" id="wave">0</div>
+                    <div class="game-stat-label">웨이브</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 게임 영역 -->
+        <div class="game-world" id="game-world">
+            <div class="path"></div>
+            <div class="goal" id="goal"></div>
+            <!-- 적들은 여기에 동적으로 생성됨 -->
+        </div>
+
+        <!-- 메시지 영역 -->
+        <div id="message-box" class="message-box">시작 버튼을 눌러 게임을 시작하세요!</div>
+
+        <!-- 입력 영역 -->
+        <div class="input-area">
+            <input type="text" id="word-input" class="defense-input" placeholder="단어를 입력하여 외계인 격퇴!" autocomplete="off"
+                autocorrect="off" autocapitalize="off" spellcheck="false" disabled>
+        </div>
+
+        <!-- 난이도 선택 -->
+        <div class="difficulty-selector">
+            <button class="difficulty-btn active" data-difficulty="easy">초급</button>
+            <button class="difficulty-btn" data-difficulty="medium">중급</button>
+            <button class="difficulty-btn" data-difficulty="hard">고급</button>
+        </div>
+
+        <!-- 컨트롤 버튼 -->
+        <div class="controls">
+            <button class="btn btn-primary" id="start-btn">시작</button>
+            <button class="btn btn-outline" id="reset-btn" disabled>초기화</button>
+        </div>
+    </div>
+
+    <!-- 결과 모달 -->
+    <div class="result-modal" id="result-modal">
+        <div class="result-content">
+            <h2 class="result-title">게임 종료!</h2>
+            <div class="result-stats">
+                <div class="result-stat">
+                    <div class="result-stat-value" id="result-score">0</div>
+                    <div class="result-stat-label">최종 점수</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-stat-value" id="result-wave">0</div>
+                    <div class="result-stat-label">최종 웨이브</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-stat-value" id="result-enemies">0</div>
+                    <div class="result-stat-label">처치한 적</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-stat-value" id="result-accuracy">0%</div>
+                    <div class="result-stat-label">정확도</div>
+                </div>
+            </div>
+            <div class="result-buttons">
+                <button class="btn btn-primary" id="try-again-btn">다시 도전</button>
+                <button class="btn btn-outline" onclick="window.location.href='index.html'">메인으로</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM 요소
+        const gameWorld = document.getElementById('game-world');
+        const goal = document.getElementById('goal');
+        const scoreDisplay = document.getElementById('score');
+        const livesDisplay = document.getElementById('lives');
+        const waveDisplay = document.getElementById('wave');
+        const wordInput = document.getElementById('word-input');
+        const messageBox = document.getElementById('message-box');
+        const startButton = document.getElementById('start-btn');
+        const resetButton = document.getElementById('reset-btn');
+        const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+        const resultModal = document.getElementById('result-modal');
+        const resultScoreElement = document.getElementById('result-score');
+        const resultWaveElement = document.getElementById('result-wave');
+        const resultEnemiesElement = document.getElementById('result-enemies');
+        const resultAccuracyElement = document.getElementById('result-accuracy');
+        const tryAgainButton = document.getElementById('try-again-btn');
+
+        // 단어 목록
+        const words = [
+            '우주', '별', '행성', '달', '지구', '태양', '빛', '밤', '낮', '하늘',
+            '별자리', '은하', '무중력', '로켓', '탐사', '발사', '궤도', '착륙',
+            '기지', '우주인', '신호', '탐험', '관측', '망원경', '별똥별', '혜성',
+            '유성', '항해', '성운', '중력', '우주복', '위성', '발견', '연구',
+            '우주선', '천문학', '블랙홀', '인공위성', '정거장', '초신성', '외계인',
+            '소행성', '왜성', '중성자별', '퀘이사', '빅뱅', '암흑물질'
+        ];
+
+        // 적 데이터
+        const enemyTypes = [
+            { sprite: "👾", speed: 1, hp: 5, points: 10 },    // 기본 외계인
+            { sprite: "👽", speed: 1.5, hp: 3, points: 15 },  // 빠른 외계인
+            { sprite: "🐙", speed: 0.8, hp: 10, points: 20 }, // 문어 외계인 (단단함)
+            { sprite: "🚀", speed: 2.0, hp: 2, points: 25 },  // 빠른 로켓
+            { sprite: "🛸", speed: 1.0, hp: 12, points: 30 }  // UFO (매우 단단함)
+        ];
+
+        // 게임 상태 변수
+        const MAX_LIVES = 10;
+        let score = 0;
+        let lives = MAX_LIVES;
+        let wave = 0;
+        let enemies = [];
+        let isPlaying = false;
+        let gameInterval;
+        let waveInterval;
+        let baseSpeed = 1;
+        let enemiesThisWave = 0;
+        let enemiesSpawnedThisWave = 0;
+        let enemiesDefeated = 0;
+        let totalWordAttempts = 0;
+        let correctWordAttempts = 0;
+        let currentDifficulty = 'easy';
+        const WAVE_DELAY = 5000;
+        const SPAWN_INTERVAL = 1500; // 기본 생성 간격
+
+        // 난이도별 설정
+        const difficultySettings = {
+            easy: {
+                baseSpeed: 1,
+                spawnRate: 1,
+                enemiesMultiplier: 3, // 웨이브당 적 수 증가
+                speedIncrease: 0.05   // 웨이브당 속도 증가
+            },
+            medium: {
+                baseSpeed: 1.2,
+                spawnRate: 1.2,
+                enemiesMultiplier: 4,
+                speedIncrease: 0.08
+            },
+            hard: {
+                baseSpeed: 1.5,
+                spawnRate: 1.5,
+                enemiesMultiplier: 5,
+                speedIncrease: 0.1
+            }
+        };
+
+        // 이벤트 리스너
+        startButton.addEventListener('click', startGame);
+        resetButton.addEventListener('click', resetGame);
+        wordInput.addEventListener('input', handleInput);
+        wordInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                checkWord();
+                e.preventDefault();
+            }
+        });
+
+        tryAgainButton.addEventListener('click', function () {
+            resultModal.classList.remove('active');
+            resetGame();
+            startGame();
+        });
+
+        // 난이도 버튼 이벤트 리스너
+        difficultyButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                // 이미 active 클래스가 있으면 무시
+                if (this.classList.contains('active')) return;
+
+                // 모든 버튼에서 active 클래스 제거
+                difficultyButtons.forEach(btn => btn.classList.remove('active'));
+
+                // 클릭된 버튼에 active 클래스 추가
+                this.classList.add('active');
+
+                // 선택된 난이도로 설정
+                currentDifficulty = this.dataset.difficulty;
+
+                // 게임이 진행 중이면 초기화
+                if (isPlaying) {
+                    resetGame();
+                }
+            });
+        });
+
+        // 게임 시작 함수
+        function startGame() {
+            if (isPlaying) return;
+
+            isPlaying = true;
+            score = 0;
+            lives = MAX_LIVES;
+            wave = 0;
+            enemies = [];
+            enemiesDefeated = 0;
+            totalWordAttempts = 0;
+            correctWordAttempts = 0;
+
+            // 난이도에 따른 설정 적용
+            baseSpeed = difficultySettings[currentDifficulty].baseSpeed;
+
+            // 기존 적 제거
+            document.querySelectorAll('.enemy').forEach(el => el.remove());
+
+            // UI 업데이트
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = lives;
+            waveDisplay.textContent = wave;
+            messageBox.textContent = '준비하세요...';
+
+            // 입력 필드 활성화
+            wordInput.disabled = false;
+            wordInput.value = '';
+            wordInput.placeholder = "단어를 입력하여 외계인 격퇴!";
+
+            // 버튼 상태 변경
+            startButton.disabled = true;
+            resetButton.disabled = false;
+
+            // 게임 루프 시작
+            gameInterval = setInterval(gameLoop, 30);
+
+            // 첫 번째 웨이브 시작
+            setTimeout(() => {
+                startNextWave();
+                wordInput.focus();
+            }, 1500);
+        }
+
+        // 게임 루프
+        function gameLoop() {
+            if (!isPlaying) return;
+            moveEnemies();
+            checkGoalReached();
+        }
+
+        // 다음 웨이브 시작
+        function startNextWave() {
+            if (!isPlaying) return;
+
+            wave++;
+            waveDisplay.textContent = wave;
+
+            // 난이도에 따른 적 수 및 속도 계산
+            const settings = difficultySettings[currentDifficulty];
+            enemiesThisWave = 5 + wave * settings.enemiesMultiplier;
+            enemiesSpawnedThisWave = 0;
+            baseSpeed = settings.baseSpeed + (wave * settings.speedIncrease);
+
+            messageBox.textContent = `침략 ${wave} 웨이브!`;
+            setTimeout(() => {
+                if (isPlaying) messageBox.textContent = '';
+            }, 2000);
+
+            // 이전 웨이브 타이머 제거
+            clearTimeout(waveInterval);
+
+            // 적 생성 시작
+            spawnEnemyForWave();
+        }
+
+        // 웨이브용 적 생성
+        function spawnEnemyForWave() {
+            if (!isPlaying || enemiesSpawnedThisWave >= enemiesThisWave) {
+                checkWaveEndCondition();
+                return;
+            }
+
+            spawnEnemy();
+            enemiesSpawnedThisWave++;
+
+            if (enemiesSpawnedThisWave < enemiesThisWave) {
+                // 다음 적 생성 예약 (난이도에 따른 생성 속도 조정)
+                const settings = difficultySettings[currentDifficulty];
+                const spawnDelay = SPAWN_INTERVAL / settings.spawnRate;
+                waveInterval = setTimeout(spawnEnemyForWave, Math.max(300, spawnDelay));
+            } else {
+                // 마지막 적 생성 후 웨이브 종료 조건 확인
+                setTimeout(checkWaveEndCondition, SPAWN_INTERVAL);
+            }
+        }
+
+        // 적 생성
+        function spawnEnemy() {
+            const typeIndex = Math.floor(Math.random() * enemyTypes.length);
+            const enemyType = enemyTypes[typeIndex];
+            const enemyEl = document.createElement('div');
+            enemyEl.classList.add('enemy');
+            enemyEl.textContent = enemyType.sprite;
+
+            // 난이도에 따라 단어 선택 (어려울수록 긴 단어 확률 증가)
+            let wordPool = [...words];
+            if (currentDifficulty === 'medium' || currentDifficulty === 'hard') {
+                // 중/고급은 더 긴 단어를 선호
+                wordPool = wordPool.filter(word =>
+                    currentDifficulty === 'medium' ? word.length >= 2 : word.length >= 3
+                );
+            }
+
+            const wordIndex = Math.floor(Math.random() * wordPool.length);
+            const word = wordPool[wordIndex];
+
+            const wordEl = document.createElement('div');
+            wordEl.classList.add('enemy-word');
+            wordEl.textContent = word;
+            enemyEl.appendChild(wordEl);
+
+            enemyEl.style.left = gameWorld.offsetWidth + 'px';
+            const randomOffsetY = Math.random() * 20 - 10;
+            enemyEl.style.bottom = (50 + randomOffsetY) + 'px';
+
+            gameWorld.appendChild(enemyEl);
+
+            enemies.push({
+                element: enemyEl,
+                word: word,
+                hp: enemyType.hp,
+                speed: enemyType.speed * baseSpeed,
+                points: enemyType.points,
+                typeIndex: typeIndex,
+                destroyed: false
+            });
+        }
+
+        // 적 이동
+        function moveEnemies() {
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemyData = enemies[i];
+                if (enemyData.destroyed) continue;
+
+                const enemyEl = enemyData.element;
+                let currentLeft = parseInt(enemyEl.style.left || gameWorld.offsetWidth);
+
+                currentLeft -= enemyData.speed;
+                enemyEl.style.left = currentLeft + 'px';
+            }
+        }
+
+        // 목표 도달 확인
+        function checkGoalReached() {
+            const goalLeftEdge = goal.offsetWidth;
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemyData = enemies[i];
+                if (enemyData.destroyed) continue;
+
+                const enemyEl = enemyData.element;
+                const enemyLeft = parseInt(enemyEl.style.left);
+
+                if (enemyLeft <= goalLeftEdge) {
+                    handleGoalReached(enemyData, i);
+                }
+            }
+        }
+
+        // 목표 도달 처리
+        function handleGoalReached(enemyData, index) {
+            if (enemyData.destroyed) return;
+
+            lives--;
+            livesDisplay.textContent = lives;
+            goal.classList.add('goal-hit');
+            setTimeout(() => goal.classList.remove('goal-hit'), 500);
+
+            // 파괴 표시 및 제거
+            enemyData.destroyed = true;
+            enemyData.element.remove();
+            enemies.splice(index, 1);
+
+            if (lives <= 0) {
+                endGame();
+            } else {
+                messageBox.textContent = `적 통과! 보호막 ${lives} 남음`;
+                setTimeout(() => {
+                    if (isPlaying) messageBox.textContent = '';
+                }, 1500);
+                checkWaveEndCondition();
+            }
+        }
+
+        // 입력 처리
+        function handleInput() {
+            if (!isPlaying) return;
+            // 입력된 내용과 일치하는 적이 있는지는 Enter 키를 눌렀을 때 확인
+        }
+
+        // 단어 확인
+        function checkWord() {
+            if (!isPlaying) return;
+
+            const typedValue = wordInput.value.trim();
+            if (typedValue === '') return;
+
+            let enemyFound = false;
+            totalWordAttempts++;
+
+            // 포털에 가장 가까운 적 우선 처리 (적들을 왼쪽에서 오른쪽 순으로 정렬)
+            const targetableEnemies = enemies
+                .filter(e => !e.destroyed)
+                .sort((a, b) => parseInt(a.element.style.left) - parseInt(b.element.style.left));
+
+            for (let i = 0; i < targetableEnemies.length; i++) {
+                const enemyData = targetableEnemies[i];
+                if (enemyData.word === typedValue) {
+                    // 원래 enemies 배열에서의 인덱스 찾기
+                    const originalIndex = enemies.findIndex(e => e === enemyData);
+                    if (originalIndex > -1) {
+                        destroyEnemy(enemyData, originalIndex);
+                        enemyFound = true;
+                        correctWordAttempts++;
+                        break; // 가장 가까운 적 하나만 처리
+                    }
+                }
+            }
+
+            // 단어 입력 결과 피드백
+            if (enemyFound) {
+                messageBox.textContent = '적 격퇴!';
+            } else {
+                messageBox.textContent = '일치하는 적 없음!';
+            }
+
+            // 빠른 피드백을 위해 메시지 업데이트 후 지우기
+            setTimeout(() => {
+                if (isPlaying) messageBox.textContent = '';
+            }, 1000);
+
+            // 입력 필드 초기화하고 포커스 유지
+            wordInput.value = '';
+            wordInput.focus();
+        }
+
+        // 적 파괴
+        function destroyEnemy(enemyData, index) {
+            if (enemyData.destroyed) return;
+
+            // 적 파괴 상태로 변경
+            enemyData.destroyed = true;
+            enemyData.element.classList.add('destroyed');
+
+            // 점수 증가 및 통계 업데이트
+            score += enemyData.points;
+            scoreDisplay.textContent = score;
+            enemiesDefeated++;
+
+            // 애니메이션이 끝나면 실제로 제거
+            setTimeout(() => {
+                if (enemyData.element.parentNode) {
+                    enemyData.element.remove();
+                }
+                // 배열에서도 제거
+                const currentIndex = enemies.findIndex(e => e === enemyData);
+                if (currentIndex > -1) {
+                    enemies.splice(currentIndex, 1);
+                }
+                // 웨이브 종료 조건 확인
+                checkWaveEndCondition();
+            }, 400);
+        }
+
+        // 웨이브 종료 조건 확인
+        function checkWaveEndCondition() {
+            if (isPlaying &&
+                enemiesSpawnedThisWave >= enemiesThisWave &&
+                enemies.filter(e => !e.destroyed).length === 0) {
+
+                // 기존 타이머 제거
+                clearTimeout(waveInterval);
+
+                // 웨이브 클리어 메시지
+                messageBox.textContent = `웨이브 ${wave} 방어 성공!`;
+
+                // 다음 웨이브 시작 타이머 설정
+                waveInterval = setTimeout(startNextWave, WAVE_DELAY);
+            }
+        }
+
+        // 게임 종료
+        function endGame() {
+            isPlaying = false;
+            clearInterval(gameInterval);
+            clearTimeout(waveInterval);
+
+            // 입력 필드 비활성화
+            wordInput.disabled = true;
+            wordInput.placeholder = "게임 종료!";
+
+            // 버튼 상태 변경
+            resetButton.disabled = false;
+
+            // 최종 정확도 계산
+            const accuracy = totalWordAttempts > 0
+                ? Math.round((correctWordAttempts / totalWordAttempts) * 100)
+                : 0;
+
+            // 결과 모달 업데이트
+            resultScoreElement.textContent = score;
+            resultWaveElement.textContent = wave;
+            resultEnemiesElement.textContent = enemiesDefeated;
+            resultAccuracyElement.textContent = `${accuracy}%`;
+
+            // 결과 모달 표시
+            resultModal.classList.add('active');
+        }
+
+        // 게임 초기화
+        function resetGame() {
+            // 게임 진행 중이면 루프 정지
+            isPlaying = false;
+            clearInterval(gameInterval);
+            clearTimeout(waveInterval);
+
+            // 기존 적 제거
+            document.querySelectorAll('.enemy').forEach(el => el.remove());
+            enemies = [];
+
+            // 기본 상태로 초기화
+            score = 0;
+            lives = MAX_LIVES;
+            wave = 0;
+
+            // UI 업데이트
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = lives;
+            waveDisplay.textContent = wave;
+            messageBox.textContent = '시작 버튼을 눌러 게임을 시작하세요!';
+
+            // 입력 필드 초기화
+            wordInput.value = '';
+            wordInput.disabled = true;
+
+            // 버튼 상태 변경
+            startButton.disabled = false;
+            resetButton.disabled = true;
+        }
+    </script>
+</body>
+
+</html>

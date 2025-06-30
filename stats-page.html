@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>우주 타자 - 통계 및 성과</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- 공통 CSS 파일 링크 (실제 경로로 수정해주세요) -->
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        /* 페이지 전용 스타일 */
+        .stats-page-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: var(--spacing-md);
+        }
+
+        @media (min-width: 768px) {
+            .stats-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-icon {
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-md) var(--spacing-sm);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 250px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--border-radius-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            height: 200px;
+            padding: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        .chart-bar {
+            flex: 1;
+            margin: 0 3px;
+            background: linear-gradient(to top, var(--primary) 0%, var(--secondary) 100%);
+            border-radius: 3px 3px 0 0;
+            position: relative;
+            transition: height 0.5s ease;
+        }
+
+        .chart-axis {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .chart-label {
+            position: absolute;
+            bottom: -25px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .progress-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .progress-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-md);
+        }
+
+        @media (min-width: 768px) {
+            .progress-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .progress-item {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .progress-label {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .progress-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .progress-bar {
+            height: 10px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+
+        .badges-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .badges-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .badges-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .badges-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-md);
+        }
+
+        @media (min-width: 768px) {
+            .badges-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        .badge-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .badge-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--spacing-xs);
+            filter: drop-shadow(0 0 8px rgba(76, 201, 240, 0.5));
+        }
+
+        .badge-unlocked .badge-icon {
+            color: var(--primary);
+        }
+
+        .badge-locked .badge-icon {
+            color: rgba(76, 201, 240, 0.3);
+            filter: grayscale(0.8);
+        }
+
+        .badge-name {
+            font-size: 0.8rem;
+            text-align: center;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .badge-desc {
+            font-size: 0.7rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .nav-buttons {
+            position: absolute;
+            top: var(--spacing-md);
+            left: var(--spacing-md);
+            z-index: 5;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+        }
+
+        .back-btn:hover {
+            background: rgba(76, 201, 240, 0.1);
+            border-color: var(--primary);
+        }
+
+        /* Canvas 스타일 */
+        canvas {
+            width: 100%;
+            max-height: 250px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 별 배경 -->
+    <div class="starfield"></div>
+    <div class="gradient-bg"></div>
+
+    <!-- 앱 컨테이너 -->
+    <div class="container flex flex-col" style="min-height: 100vh;">
+        <!-- 네비게이션 버튼 -->
+        <div class="nav-buttons">
+            <button class="back-btn" onclick="window.location.href='index.html'">
+                ← 메인으로
+            </button>
+        </div>
+
+        <!-- 페이지 헤더 -->
+        <div class="text-center my-md">
+            <h1 class="logo">STATISTICS</h1>
+            <p class="tagline">타이핑 성과 분석</p>
+        </div>
+
+        <!-- 통계 페이지 내용 -->
+        <div class="stats-page-container">
+            <!-- 요약 통계 -->
+            <div class="stats-summary">
+                <!-- 기본 연습 통계 -->
+                <div class="summary-card">
+                    <div class="card-header">
+                        <h2 class="card-title">기본 연습 통계</h2>
+                        <div class="card-icon">⌨️</div>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">89</div>
+                            <div class="stat-label">평균 CPM</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">97%</div>
+                            <div class="stat-label">정확도</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">52</div>
+                            <div class="stat-label">총 연습 시간 (분)</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">435</div>
+                            <div class="stat-label">완료한 단어</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 시간 도전 통계 -->
+                <div class="summary-card">
+                    <div class="card-header">
+                        <h2 class="card-title">시간 도전 통계</h2>
+                        <div class="card-icon">⏱️</div>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">105</div>
+                            <div class="stat-label">최고 CPM</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">94%</div>
+                            <div class="stat-label">평균 정확도</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">12</div>
+                            <div class="stat-label">도전 횟수</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">65</div>
+                            <div class="stat-label">최고 단어 수</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 우주 디펜스 통계 -->
+                <div class="summary-card">
+                    <div class="card-header">
+                        <h2 class="card-title">우주 디펜스 통계</h2>
+                        <div class="card-icon">👾</div>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">15</div>
+                            <div class="stat-label">최고 웨이브</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">1250</div>
+                            <div class="stat-label">최고 점수</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">142</div>
+                            <div class="stat-label">처치한 적</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">92%</div>
+                            <div class="stat-label">명중률</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 일반 통계 -->
+                <div class="summary-card">
+                    <div class="card-header">
+                        <h2 class="card-title">전체 타이핑 통계</h2>
+                        <div class="card-icon">📊</div>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">94</div>
+                            <div class="stat-label">종합 평균 CPM</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">96%</div>
+                            <div class="stat-label">종합 정확도</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">5.4h</div>
+                            <div class="stat-label">총 사용 시간</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">23</div>
+                            <div class="stat-label">활동 일수</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 진행 차트 -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">CPM 발전 추이</h2>
+                    <select id="chart-period-selector" class="btn btn-outline btn-sm">
+                        <option value="week">최근 7일</option>
+                        <option value="month" selected>최근 30일</option>
+                        <option value="all">전체 기간</option>
+                    </select>
+                </div>
+                <div class="chart-canvas">
+                    <canvas id="cpmChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 목표 진행률 -->
+            <div class="progress-container">
+                <div class="progress-header">
+                    <h2 class="progress-title">목표 달성 현황</h2>
+                </div>
+                <div class="progress-grid">
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <div class="progress-label">CPM 100 달성</div>
+                            <div class="progress-value">89/100</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 89%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <div class="progress-label">50개 단어 입력</div>
+                            <div class="progress-value">435/50</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <div class="progress-label">98% 정확도 달성</div>
+                            <div class="progress-value">96/98</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 97.9%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <div class="progress-label">우주 디펜스 웨이브 20</div>
+                            <div class="progress-value">15/20</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 75%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <div class="progress-label">5시간 연습</div>
+                            <div class="progress-value">5.4/5</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <div class="progress-label">30일 연속 사용</div>
+                            <div class="progress-value">23/30</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 76.7%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 획득한 뱃지 -->
+            <div class="badges-container">
+                <div class="badges-header">
+                    <h2 class="badges-title">획득한 뱃지</h2>
+                    <div>5/10 완료</div>
+                </div>
+                <div class="badges-grid">
+                    <!-- 획득한 뱃지 -->
+                    <div class="badge-item badge-unlocked">
+                        <div class="badge-icon">🚀</div>
+                        <div class="badge-name">첫 발사</div>
+                        <div class="badge-desc">첫 번째 타이핑 세션 완료</div>
+                    </div>
+                    <div class="badge-item badge-unlocked">
+                        <div class="badge-icon">🎯</div>
+                        <div class="badge-name">정확한 타이핑</div>
+                        <div class="badge-desc">95% 이상 정확도 달성</div>
+                    </div>
+                    <div class="badge-item badge-unlocked">
+                        <div class="badge-icon">⚡</div>
+                        <div class="badge-name">빠른 손가락</div>
+                        <div class="badge-desc">CPM 80 이상 달성</div>
+                    </div>
+                    <div class="badge-item badge-unlocked">
+                        <div class="badge-icon">👽</div>
+                        <div class="badge-name">외계인 사냥꾼</div>
+                        <div class="badge-desc">100개의 적 처치</div>
+                    </div>
+                    <div class="badge-item badge-unlocked">
+                        <div class="badge-icon">🌟</div>
+                        <div class="badge-name">성실한 타이피스트</div>
+                        <div class="badge-desc">총 5시간 연습 완료</div>
+                    </div>
+
+                    <!-- 미획득 뱃지 -->
+                    <div class="badge-item badge-locked">
+                        <div class="badge-icon">🔥</div>
+                        <div class="badge-name">연속 불꽃</div>
+                        <div class="badge-desc">30일 연속 사용</div>
+                    </div>
+                    <div class="badge-item badge-locked">
+                        <div class="badge-icon">🛸</div>
+                        <div class="badge-name">우주 수호자</div>
+                        <div class="badge-desc">우주 디펜스 웨이브 20 달성</div>
+                    </div>
+                    <div class="badge-item badge-locked">
+                        <div class="badge-icon">⏱️</div>
+                        <div class="badge-name">시간의 달인</div>
+                        <div class="badge-desc">60초 도전에서 60개 단어 입력</div>
+                    </div>
+                    <div class="badge-item badge-locked">
+                        <div class="badge-icon">💯</div>
+                        <div class="badge-name">완벽한 정확도</div>
+                        <div class="badge-desc">100% 정확도로 세션 완료</div>
+                    </div>
+                    <div class="badge-item badge-locked">
+                        <div class="badge-icon">🏆</div>
+                        <div class="badge-name">타이핑 마스터</div>
+                        <div class="badge-desc">CPM 120 이상 달성</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+    <script>
+        // 차트 데이터와 설정
+        const cpmChartCtx = document.getElementById('cpmChart').getContext('2d');
+
+        // 샘플 데이터 - 실제 앱에서는 데이터베이스나 로컬 스토리지에서 가져올 것
+        const chartData = {
+            week: {
+                labels: ['월', '화', '수', '목', '금', '토', '일'],
+                datasets: [{
+                    label: 'CPM',
+                    data: [78, 82, 80, 85, 89, 92, 94],
+                    borderColor: '#4cc9f0',
+                    backgroundColor: 'rgba(76, 201, 240, 0.2)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            month: {
+                labels: Array.from({ length: 30 }, (_, i) => `${i + 1}일`),
+                datasets: [{
+                    label: 'CPM',
+                    data: [
+                        65, 68, 70, 72, 71, 73, 75,
+                        74, 78, 80, 79, 82, 83, 85,
+                        84, 86, 88, 87, 89, 91, 93,
+                        90, 92, 94, 96, 95, 97, 98, 99, 105
+                    ],
+                    borderColor: '#4cc9f0',
+                    backgroundColor: 'rgba(76, 201, 240, 0.2)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            all: {
+                labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월'],
+                datasets: [{
+                    label: 'CPM',
+                    data: [45, 52, 60, 67, 73, 78, 82, 88, 94],
+                    borderColor: '#4cc9f0',
+                    backgroundColor: 'rgba(76, 201, 240, 0.2)',
+                    tension: 0.3,
+                    fill: true
+                }]
+            }
+        };
+
+        // 차트 생성 함수
+        function createChart(period) {
+            return new Chart(cpmChartCtx, {
+                type: 'line',
+                data: chartData[period],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(10, 10, 25, 0.8)',
+                            borderColor: 'rgba(76, 201, 240, 0.3)',
+                            borderWidth: 1,
+                            titleColor: '#ffffff',
+                            bodyColor: '#ffffff',
+                            padding: 10,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 40,
+                            ticks: {
+                                color: 'rgba(224, 224, 224, 0.7)'
+                            },
+                            grid: {
+                                color: 'rgba(76, 201, 240, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: 'rgba(224, 224, 224, 0.7)'
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 초기 차트 생성
+        let cpmChart = createChart('month');
+
+        // 차트 기간 선택 이벤트 리스너
+        document.getElementById('chart-period-selector').addEventListener('change', function () {
+            // 기존 차트 파괴
+            cpmChart.destroy();
+            // 새 차트 생성
+            cpmChart = createChart(this.value);
+        });
+
+        // 페이지 로드 시 데이터 초기화
+        window.addEventListener('load', function () {
+            // 여기에 로컬 스토리지 등에서 데이터를 가져와 화면에 채우는 코드가 들어갈 수 있음
+        });
+    </script>
+</body>
+
+</html>

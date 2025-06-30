@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>우주 타자 - 메인</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- 공통 CSS 파일 링크 (실제 경로로 수정해주세요) -->
+    <link rel="stylesheet" href="css/common.css">
+    <style>
+        /* 페이지 전용 스타일 */
+
+        /* 애니메이션 효과 */
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-7px);
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes shine {
+            0% {
+                background-position: -100% 0;
+            }
+
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        /* 로고 및 헤더 스타일 */
+        .app-header {
+            text-align: center;
+            margin: var(--spacing-xl) 0;
+            position: relative;
+        }
+
+        .logo-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .app-logo {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            color: #fff;
+            position: relative;
+            animation: pulse 3s infinite ease-in-out;
+            text-transform: uppercase;
+        }
+
+        .app-logo::after {
+            content: 'COSMIC TYPER';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--primary);
+            z-index: -1;
+            opacity: 0.7;
+            text-shadow: 0 0 10px rgba(76, 201, 240, 0.8);
+            animation: pulse 3s infinite ease-in-out alternate;
+            text-transform: uppercase;
+        }
+
+        .app-tagline {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+            margin-top: var(--spacing-sm);
+        }
+
+        /* 메인 내비게이션 */
+        .main-nav {
+            width: 100%;
+            max-width: 900px;
+            margin: var(--spacing-lg) auto;
+        }
+
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        @media (min-width: 768px) {
+            .mode-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-lg);
+            }
+        }
+
+        .mode-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-lg);
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            overflow: hidden;
+            position: relative;
+            text-decoration: none;
+            /* 링크 밑줄 제거 */
+        }
+
+        .mode-card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-5px);
+        }
+
+        .mode-card:hover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent 0%,
+                    rgba(255, 255, 255, 0.1) 50%,
+                    transparent 100%);
+            animation: shine 1.5s infinite;
+            pointer-events: none;
+        }
+
+        .mode-icon {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-right: var(--spacing-md);
+            flex-shrink: 0;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(76, 201, 240, 0.1);
+            border-radius: 50%;
+            border: 1px solid rgba(76, 201, 240, 0.3);
+        }
+
+        .mode-content {
+            flex: 1;
+        }
+
+        .mode-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .mode-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* 통계 컨테이너 */
+        .stats-container {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stats-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .stats-title-icon {
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .stats-view-all {
+            font-size: 0.9rem;
+            color: var(--primary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            text-decoration: none;
+            /* 링크 밑줄 제거 */
+        }
+
+        .stats-view-all:hover {
+            color: var(--primary-light);
+            /* 밑줄 효과 제거 */
+            /* text-decoration: underline; */
+            opacity: 0.8;
+            /* 대신 밝기를 조정 */
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-md);
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: var(--spacing-md);
+            background: rgba(10, 10, 25, 0.3);
+            border-radius: var(--border-radius-md);
+            transition: all var(--transition-fast);
+            border: 1px solid rgba(76, 201, 240, 0.1);
+        }
+
+        .stat-item:hover {
+            background: rgba(10, 10, 25, 0.5);
+            transform: translateY(-3px);
+            border-color: rgba(76, 201, 240, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 푸터 내비게이션 */
+        .footer-nav {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-md);
+            flex-wrap: wrap;
+            margin-top: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .footer-btn {
+            background: transparent;
+            border: 1px solid rgba(76, 201, 240, 0.3);
+            border-radius: var(--border-radius-md);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            text-decoration: none;
+            /* 링크 밑줄 제거 */
+        }
+
+        .footer-btn:hover {
+            background: rgba(76, 201, 240, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .footer-btn-icon {
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+
+        /* 데코레이션 요소 */
+        .planet-decoration {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(30px);
+            z-index: -1;
+            animation: pulse 8s infinite ease-in-out alternate;
+        }
+
+        .planet-1 {
+            top: -100px;
+            right: -100px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(123, 44, 191, 0.2) 0%, rgba(76, 201, 240, 0.1) 70%, transparent 100%);
+        }
+
+        .planet-2 {
+            bottom: -50px;
+            left: -80px;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(76, 201, 240, 0.2) 0%, rgba(123, 44, 191, 0.1) 70%, transparent 100%);
+        }
+
+        .space-objects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .space-object {
+            position: absolute;
+            font-size: 1.5rem;
+            opacity: 0.7;
+            animation: float 15s infinite linear;
+        }
+
+        .asteroid {
+            top: 15%;
+            left: -50px;
+            animation-duration: 25s;
+        }
+
+        .rocket {
+            top: 70%;
+            left: -50px;
+            animation-duration: 18s;
+            animation-delay: -5s;
+        }
+
+        .ufo {
+            top: 40%;
+            right: -50px;
+            animation-duration: 30s;
+            animation-delay: -10s;
+            animation-direction: reverse;
+        }
+
+        @keyframes float {
+            from {
+                transform: translateX(-50px) rotate(5deg);
+            }
+
+            to {
+                transform: translateX(calc(100vw + 50px)) rotate(5deg);
+            }
+        }
+
+        /* 반응형 조정 */
+        @media (max-width: 768px) {
+            .app-logo {
+                font-size: 1.8rem;
+            }
+
+            .app-tagline {
+                font-size: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: var(--spacing-sm);
+            }
+
+            .stat-item {
+                padding: var(--spacing-sm);
+            }
+
+            .stat-value {
+                font-size: 1.8rem;
+            }
+
+            .footer-nav {
+                flex-direction: column;
+                align-items: center;
+                gap: var(--spacing-sm);
+            }
+
+            .footer-btn {
+                width: 80%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .mode-card {
+                padding: var(--spacing-md);
+            }
+
+            .mode-icon {
+                font-size: 2rem;
+                width: 40px;
+                height: 40px;
+            }
+
+            .mode-title {
+                font-size: 1.2rem;
+            }
+
+            .mode-desc {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 별 배경 -->
+    <div class="starfield"></div>
+    <div class="gradient-bg"></div>
+
+    <!-- 우주 물체 데코레이션 -->
+    <div class="space-objects">
+        <div class="space-object asteroid">☄️</div>
+        <div class="space-object rocket">🚀</div>
+        <div class="space-object ufo">🛸</div>
+    </div>
+
+    <!-- 앱 컨테이너 -->
+    <div class="container flex flex-col" style="min-height: 100vh;">
+        <!-- 앱 헤더 -->
+        <header class="app-header">
+            <div class="logo-container">
+                <h1 class="app-logo">COSMIC TYPER</h1>
+            </div>
+            <p class="app-tagline">우주를 누비는 타자 연습</p>
+        </header>
+
+        <!-- 메인 내비게이션 -->
+        <nav class="main-nav">
+            <div class="mode-grid">
+                <!-- 기본 연습 -->
+                <a href="basic_practice.html" class="mode-card">
+                    <div class="mode-icon">⌨️</div>
+                    <div class="mode-content">
+                        <h2 class="mode-title">기본 연습</h2>
+                        <p class="mode-desc">자신만의 페이스로 타이핑 정확도와 속도를 향상시키는 기본 연습 모드입니다.</p>
+                    </div>
+                </a>
+
+                <!-- 시간 도전 -->
+                <a href="time_challenge.html" class="mode-card">
+                    <div class="mode-icon">⏱️</div>
+                    <div class="mode-content">
+                        <h2 class="mode-title">시간 도전</h2>
+                        <p class="mode-desc">제한된 시간 내에 최대한 많은 단어를 정확하게 입력하세요.</p>
+                    </div>
+                </a>
+
+                <!-- 우주 디펜스 -->
+                <a href="space_defense.html" class="mode-card">
+                    <div class="mode-icon">👾</div>
+                    <div class="mode-content">
+                        <h2 class="mode-title">우주 디펜스</h2>
+                        <p class="mode-desc">단어를 입력하여 외계 침략자로부터 기지를 보호하는 게임 모드입니다.</p>
+                    </div>
+                </a>
+
+                <!-- 통계 분석 -->
+                <a href="stats.html" class="mode-card">
+                    <div class="mode-icon">📊</div>
+                    <div class="mode-content">
+                        <h2 class="mode-title">통계 분석</h2>
+                        <p class="mode-desc">타이핑 성과를 확인하고 개인 성장을 추적하는 상세 통계 대시보드입니다.</p>
+                    </div>
+                </a>
+            </div>
+        </nav>
+
+        <!-- 통계 요약 -->
+        <div class="stats-container">
+            <div class="planet-decoration planet-1"></div>
+            <div class="planet-decoration planet-2"></div>
+
+            <div class="stats-header">
+                <h2 class="stats-title">
+                    <span class="stats-title-icon">📈</span>
+                    내 타이핑 현황
+                </h2>
+                <a href="stats.html" class="stats-view-all">전체보기</a>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">87</div>
+                    <div class="stat-label">평균 CPM</div>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-value">96<span style="font-size: 1.5rem;">%</span></div>
+                    <div class="stat-label">정확도</div>
+                </div>
+
+                <div class="stat-item">
+                    <div class="stat-value">12</div>
+                    <div class="stat-label">최고 웨이브</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 푸터 내비게이션 -->
+        <div class="footer-nav">
+            <a href="settings.html" class="footer-btn">
+                <span class="footer-btn-icon">⚙️</span>
+                설정
+            </a>
+            <a href="word_sets.html" class="footer-btn">
+                <span class="footer-btn-icon">📝</span>
+                단어 세트
+            </a>
+            <a href="help.html" class="footer-btn">
+                <span class="footer-btn-icon">❓</span>
+                도움말
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 실행
+        document.addEventListener('DOMContentLoaded', function () {
+            // 통계 데이터 불러오기 (실제 앱에서는 localStorage 또는 API에서 로드)
+            loadUserStats();
+
+            // 애니메이션 모드 설정 (모바일 배터리 절약)
+            adjustAnimations();
+
+            // 반응형 화면 크기 조정 이벤트
+            window.addEventListener('resize', adjustAnimations);
+        });
+
+        // 사용자 통계 불러오기 (데모 기능)
+        function loadUserStats() {
+            // 실제 앱에서는 localStorage 또는 API에서 데이터 불러오기
+            // 여기서는 하드코딩된 값 사용
+            const stats = {
+                averageCPM: 87,
+                accuracy: 96,
+                highestWave: 12
+            };
+
+            // 통계 요소 업데이트 (이미 HTML에 하드코딩되어 있으므로 생략)
+        }
+
+        // 애니메이션 조정 (모바일 디바이스에서 성능 최적화)
+        function adjustAnimations() {
+            const isMobile = window.innerWidth < 768;
+            const spaceObjects = document.querySelectorAll('.space-object');
+
+            // 모바일에서는 애니메이션 효과 감소
+            if (isMobile) {
+                spaceObjects.forEach(obj => {
+                    obj.style.animationDuration = '30s'; // 더 느린 애니메이션
+                });
+            } else {
+                // 각 객체의 원래 애니메이션 속도 복원
+                const speeds = {
+                    'asteroid': '25s',
+                    'rocket': '18s',
+                    'ufo': '30s'
+                };
+
+                spaceObjects.forEach(obj => {
+                    for (const className in speeds) {
+                        if (obj.classList.contains(className)) {
+                            obj.style.animationDuration = speeds[className];
+                            break;
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>
